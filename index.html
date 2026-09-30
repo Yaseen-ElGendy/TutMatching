@@ -451,12 +451,37 @@
         </div>
         <form id="step4Form">
           <div class="field">
-            <label for="email">Email *</label>
+            <label for="email">GUC Email *</label>
             <input id="email" type="email" placeholder="your.email@guc.edu.eg" required>
           </div>
+          <div class="button-group" id="sendCodeGroup">
+            <button type="button" class="btn-primary" id="sendCodeBtn" onclick="window.sendVerificationCode()">Send Verification Code</button>
+          </div>
+
+          <div id="otpSection" class="hidden">
+            <div class="field" style="margin-top: 20px;">
+              <label for="otpCode">Enter the 6-digit code sent to your email</label>
+              <input id="otpCode" type="text" placeholder="123456" inputmode="numeric" maxlength="6">
+            </div>
+            <div class="button-group">
+              <button type="button" class="btn-secondary" id="verifyCodeBtn" onclick="window.verifyCode()">Verify Code</button>
+            </div>
+          </div>
+
+          <div id="verifiedSection" class="hidden">
+            <div class="alert success" style="margin-top: 20px;">✓ Email verified</div>
+            <div class="field">
+              <label for="phone">Phone Number (optional)</label>
+              <input id="phone" type="tel" placeholder="e.g. 01012345678">
+              <div style="font-size: 12px; color: var(--text-soft); margin-top: 6px;">
+                Only shared with your matched student, same as your email.
+              </div>
+            </div>
+          </div>
+
           <div class="button-group">
             <button type="button" class="btn-secondary" onclick="window.goToStep(3)">Back</button>
-            <button type="submit" class="btn-primary">Submit Request</button>
+            <button type="submit" class="btn-primary" id="finalSubmitBtn" disabled>Submit Request</button>
           </div>
         </form>
         <div id="alert4"></div>
@@ -502,12 +527,16 @@
   const SUPABASE_URL = 'https://pyegfqoxnofszjbpcyil.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZWdmcW94bm9mc3pqYnBjeWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NjEzOTgsImV4cCI6MjEwNTMzNzM5OH0.4pO-72hxkb2zMyDK3rRmNYB4wen-ibEq6B7X9RBKW38';
   const GUC_PORTAL_URL = 'https://student.guc.edu.eg/';
+  // TODO: confirm this is your actual GUC student email domain
+  const GUC_EMAIL_DOMAIN = '@guc.edu.eg';
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   let currentStep = 1;
   let formData = {};
   let currentSubmissionId = null;
+  let isVerified = false;
+  let verifiedEmail = null;
 
   // ===== UTILITIES =====
   function updateProgress() {
@@ -615,18 +644,94 @@
     goToStep(4);
   });
 
-  // ===== STEP 4 =====
-  document.getElementById('step4Form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  // ===== STEP 4: EMAIL VERIFICATION =====
+  async function sendVerificationCode() {
     clearAlerts();
-
     const email = document.getElementById('email').value.trim();
+
     if (!email) {
       showAlert(4, 'Please enter your email.');
       return;
     }
+    if (!email.toLowerCase().endsWith(GUC_EMAIL_DOMAIN)) {
+      showAlert(4, `Please use your GUC email address (ends with ${GUC_EMAIL_DOMAIN}).`);
+      return;
+    }
+
+    const btn = document.getElementById('sendCodeBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
 
     try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: { shouldCreateUser: true }
+      });
+      if (error) throw error;
+
+      document.getElementById('otpSection').classList.remove('hidden');
+      document.getElementById('sendCodeGroup').classList.add('hidden');
+      document.getElementById('email').disabled = true;
+    } catch (err) {
+      console.error('OTP send error:', err);
+      showAlert(4, err.message || 'Could not send code. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Send Verification Code';
+    }
+  }
+
+  async function verifyCode() {
+    clearAlerts();
+    const email = document.getElementById('email').value.trim();
+    const code = document.getElementById('otpCode').value.trim();
+
+    if (!code) {
+      showAlert(4, 'Please enter the code from your email.');
+      return;
+    }
+
+    const btn = document.getElementById('verifyCodeBtn');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email,
+        token: code,
+        type: 'email'
+      });
+      if (error) throw error;
+
+      isVerified = true;
+      verifiedEmail = email;
+
+      document.getElementById('otpSection').classList.add('hidden');
+      document.getElementById('verifiedSection').classList.remove('hidden');
+      document.getElementById('finalSubmitBtn').disabled = false;
+    } catch (err) {
+      console.error('OTP verify error:', err);
+      showAlert(4, err.message || 'Invalid code. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Verify Code';
+    }
+  }
+
+  // ===== STEP 4: FINAL SUBMIT =====
+  document.getElementById('step4Form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAlerts();
+
+    if (!isVerified) {
+      showAlert(4, 'Please verify your email first.');
+      return;
+    }
+
+    const phone = document.getElementById('phone').value.trim() || null;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Session expired. Please verify your email again.');
+
       const { data: existing, error: checkErr } = await supabase
         .from('submissions')
         .select('id')
@@ -643,7 +748,8 @@
         .from('submissions')
         .insert({
           student_id: formData.studentId,
-          email: email,
+          user_id: user.id,
+          phone: phone,
           major: formData.major,
           current_tut: formData.currentTut,
           desired_tut: formData.desiredTut,
@@ -659,8 +765,12 @@
       const newSubmission = submission[0];
       currentSubmissionId = newSubmission.id;
 
-      const match = await checkForMatch(newSubmission, email);
-      showResults(newSubmission, match, email);
+      const { data: matchResult, error: matchErr } = await supabase.rpc('attempt_match', {
+        p_submission_id: newSubmission.id
+      });
+      if (matchErr) throw matchErr;
+
+      showResults(newSubmission, matchResult);
 
     } catch (err) {
       console.error('Submit error:', err);
@@ -673,128 +783,14 @@
     return str.split(',').map(t => t.trim()).filter(t => t.length > 0);
   }
 
-  // ===== MATCHING LOGIC =====
-  async function checkForMatch(newSubmission, email) {
-    try {
-      const { data: waiting } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('status', 'waiting')
-        .neq('id', newSubmission.id);
-
-      if (!waiting || waiting.length === 0) return null;
-
-      for (const candidate of waiting) {
-        const candidateMajor = candidate.major.split('(')[0].trim();
-        const newMajor = newSubmission.major.split('(')[0].trim();
-        
-        const candidateCurrent = candidate.current_tut.trim();
-        const candidateDesiredList = parseTutList(candidate.desired_tut);
-        const newCurrent = newSubmission.current_tut.trim();
-        const newDesiredList = parseTutList(newSubmission.desired_tut);
-
-        // Mutual fit: candidate's current tut is something I'd accept,
-        // AND my current tut is something the candidate would accept
-        if (
-          candidateMajor === newMajor &&
-          newDesiredList.includes(candidateCurrent) &&
-          candidateDesiredList.includes(newCurrent)
-        ) {
-          const coordinatorNeeded = 
-            (candidate.german_level && newSubmission.german_level && candidate.german_level !== newSubmission.german_level) ||
-            (candidate.english_level && newSubmission.english_level && candidate.english_level !== newSubmission.english_level);
-
-          const { data: match, error: matchErr } = await supabase
-            .from('matches')
-            .insert({
-              submission_a_id: candidate.id,
-              submission_b_id: newSubmission.id,
-              coordinator_needed: coordinatorNeeded,
-              created_at: new Date().toISOString()
-            })
-            .select();
-
-          if (matchErr) throw matchErr;
-
-          // Create contact record with both emails
-          await supabase
-            .from('match_contacts')
-            .insert({
-              match_id: match[0].id,
-              student_a_id: candidate.student_id,
-              student_a_email: candidate.email,
-              student_b_id: newSubmission.student_id,
-              student_b_email: email
-            });
-
-          // Update statuses
-          await supabase.from('submissions').update({ status: 'matched', matched_at: new Date().toISOString() }).eq('id', candidate.id);
-          await supabase.from('submissions').update({ status: 'matched', matched_at: new Date().toISOString() }).eq('id', newSubmission.id);
-
-          return { match: match[0], partner: candidate, partnerEmail: candidate.email, coordinator: coordinatorNeeded, type: 'direct' };
-        }
-      }
-
-      return null;
-    } catch (err) {
-      console.error('Match error:', err);
-      throw err;
-    }
-  }
-
   // ===== CHAIN MATCHING =====
   async function findChainMatches() {
     try {
-      const { data: waiting } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('status', 'waiting');
-
-      if (!waiting || waiting.length < 2) return [];
-
-      const majorPrefix = formData.major.split('(')[0].trim();
-      const sameMajor = waiting.filter(r => r.major.split('(')[0].trim() === majorPrefix);
-
-      // Find the current user's own submission (nodeA is always YOU)
-      const nodeA = sameMajor.find(r => r.id === currentSubmissionId);
-      if (!nodeA) return [];
-
-      const chains = [];
-      const seenNextLink = new Set(); // dedupe: only show each distinct next-partner once
-
-      // Only search for cycles that start with the current user
-      for (const nodeB of sameMajor) {
-        if (nodeB.id === nodeA.id) continue;
-        if (seenNextLink.has(nodeB.id)) continue;
-
-        const nodeADesiredList = parseTutList(nodeA.desired_tut);
-        const nodeBCurrent = nodeB.current_tut.trim();
-
-        // You'd accept B's tutorial
-        if (nodeADesiredList.includes(nodeBCurrent)) {
-          const nodeBDesiredList = parseTutList(nodeB.desired_tut);
-
-          for (const nodeC of sameMajor) {
-            if (nodeC.id === nodeA.id || nodeC.id === nodeB.id) continue;
-
-            const nodeCCurrent = nodeC.current_tut.trim();
-            const nodeCDesiredList = parseTutList(nodeC.desired_tut);
-
-            // B would accept C's tutorial AND C would accept YOUR tutorial (closes the loop)
-            if (nodeBDesiredList.includes(nodeCCurrent) &&
-                nodeCDesiredList.includes(nodeA.current_tut.trim())) {
-              chains.push({
-                participants: [nodeA, nodeB, nodeC],
-                nextLink: { from: nodeA.student_id, to: nodeB.student_id, tutSwap: `${nodeA.current_tut} → ${nodeB.current_tut}` }
-              });
-              seenNextLink.add(nodeB.id); // one card per distinct next-partner, even if multiple C's would close it
-              break;
-            }
-          }
-        }
-      }
-
-      return chains;
+      const { data, error } = await supabase.rpc('find_chain_match', {
+        p_submission_id: currentSubmissionId
+      });
+      if (error) throw error;
+      return (data && data.chains) ? data.chains : [];
     } catch (err) {
       console.error('Chain search error:', err);
       return [];
@@ -815,8 +811,8 @@
       html += `
         <div class="chain-result">
           <div class="label">Chain ${idx + 1}</div>
-          <div class="detail">You swap: Tut ${chain.nextLink.tutSwap}</div>
-          <div class="detail">Next in chain: ${chain.nextLink.to}</div>
+          <div class="detail">You swap: Tut ${chain.tutSwap}</div>
+          <div class="detail">Next in chain: ${chain.to}</div>
         </div>
       `;
     });
@@ -824,23 +820,23 @@
     resultsDiv.innerHTML = html;
   }
 
-  function showResults(submission, matchResult, email) {
+  function showResults(submission, matchResult) {
     document.getElementById('formSection').classList.add('hidden');
     document.getElementById('resultsSection').classList.remove('hidden');
 
     const resultsDiv = document.getElementById('matchResults');
 
-    if (matchResult && matchResult.match) {
+    if (matchResult && matchResult.matched) {
       // Direct match found
       resultsDiv.innerHTML = `
         <div class="match-card">
           <div class="match-header">✓ MATCHED!</div>
           <div class="match-info">
-            <strong>Your swap:</strong> Tut ${formData.currentTut} → Tut ${matchResult.partner.current_tut}<br>
-            <strong>Partner swap:</strong> Tut ${matchResult.partner.current_tut} → Tut ${formData.currentTut}<br>
-            <strong>Partner ID:</strong> ${matchResult.partner.student_id}
+            <strong>Your swap:</strong> Tut ${formData.currentTut} → Tut ${matchResult.partner_current_tut}<br>
+            <strong>Partner swap:</strong> Tut ${matchResult.partner_current_tut} → Tut ${formData.currentTut}<br>
+            <strong>Partner ID:</strong> ${matchResult.partner_student_id}
           </div>
-          ${matchResult.coordinator ? `
+          ${matchResult.coordinator_needed ? `
             <div class="coordinator-note">
               <strong>⚠️ Coordinator Approval Needed</strong><br>
               You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
@@ -850,7 +846,8 @@
             Go to GUC Portal
           </button>
           <p style="font-size: 12px; color: var(--text-soft); margin-top: 12px; text-align: center;">
-            Partner's email: <strong>${matchResult.partnerEmail}</strong>
+            Partner's email: <strong>${matchResult.partner_email}</strong>
+            ${matchResult.partner_phone ? `<br>Partner's phone: <strong>${matchResult.partner_phone}</strong>` : ''}
           </p>
         </div>
       `;
@@ -897,8 +894,19 @@
     document.getElementById('germanLevel').value = '';
     document.getElementById('englishLevel').value = '';
     document.getElementById('email').value = '';
+    document.getElementById('email').disabled = false;
+    document.getElementById('otpCode').value = '';
+    document.getElementById('phone').value = '';
+    document.getElementById('otpSection').classList.add('hidden');
+    document.getElementById('verifiedSection').classList.add('hidden');
+    document.getElementById('sendCodeGroup').classList.remove('hidden');
+    document.getElementById('sendCodeBtn').disabled = false;
+    document.getElementById('sendCodeBtn').textContent = 'Send Verification Code';
+    document.getElementById('finalSubmitBtn').disabled = true;
     formData = {};
     currentSubmissionId = null;
+    isVerified = false;
+    verifiedEmail = null;
     goToStep(1);
   }
 
@@ -906,6 +914,8 @@
   window.goToStep = goToStep;
   window.resetForm = resetForm;
   window.searchChainMatches = performChainSearch;
+  window.sendVerificationCode = sendVerificationCode;
+  window.verifyCode = verifyCode;
 
   // Init
   updateProgress();
