@@ -952,9 +952,108 @@
     currentSubmissionId = null;
     goToStep(1);
   }
+  // ===== STATUS CHECK =====
+  function toggleStatusCheck() {
+    document.getElementById('statusCheckSection').classList.toggle('hidden');
+  }
+
+  async function checkMyStatus() {
+    const resultDiv = document.getElementById('statusCheckResult');
+    const id = document.getElementById('statusCheckId').value.trim();
+    if (!id) {
+      resultDiv.innerHTML = '<div class="alert error">Please enter your student ID.</div>';
+      return;
+    }
+    resultDiv.innerHTML = '<div style="text-align:center;"><span class="loading-spinner"></span> Checking...</div>';
+
+    try {
+      const { data: mySubs, error: subErr } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('student_id', id)
+        .in('status', ['waiting', 'matched'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (subErr) throw subErr;
+      if (!mySubs || mySubs.length === 0) {
+        resultDiv.innerHTML = '<div class="alert error">No active request found for that ID.</div>';
+        return;
+      }
+
+      const mySub = mySubs[0];
+
+      if (mySub.status === 'waiting') {
+        resultDiv.innerHTML = `
+          <div class="empty-state">
+            <p><strong>Still in the queue.</strong></p>
+            <p>Tut ${mySub.current_tut} → Tut ${mySub.desired_tut.split(',').join(' or ')}</p>
+          </div>
+        `;
+        return;
+      }
+
+      const { data: matchRows, error: matchErr } = await supabase
+        .from('matches')
+        .select('*')
+        .or(`submission_a_id.eq.${mySub.id},submission_b_id.eq.${mySub.id}`)
+        .limit(1);
+
+      if (matchErr) throw matchErr;
+      if (!matchRows || matchRows.length === 0) {
+        resultDiv.innerHTML = '<div class="alert error">Matched, but match details could not be found.</div>';
+        return;
+      }
+
+      const matchRow = matchRows[0];
+      const partnerSubId = matchRow.submission_a_id === mySub.id ? matchRow.submission_b_id : matchRow.submission_a_id;
+
+      const { data: partnerSub, error: partnerErr } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('id', partnerSubId)
+        .single();
+
+      if (partnerErr) throw partnerErr;
+
+      const { data: contactRow, error: contactErr } = await supabase
+        .from('match_contacts')
+        .select('*')
+        .eq('match_id', matchRow.id)
+        .single();
+
+      if (contactErr) throw contactErr;
+
+      const partnerEmail = contactRow.student_a_id === mySub.student_id ? contactRow.student_b_email : contactRow.student_a_email;
+
+      resultDiv.innerHTML = `
+        <div class="match-card">
+          <div class="match-header">✓ MATCHED!</div>
+          <div class="match-info">
+            <strong>Your swap:</strong> Tut ${mySub.current_tut} → Tut ${partnerSub.current_tut}<br>
+            <strong>Partner ID:</strong> ${partnerSub.student_id}
+          </div>
+          ${matchRow.coordinator_needed ? `
+            <div class="coordinator-note">
+              <strong>⚠️ Coordinator Approval Needed</strong><br>
+              You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
+            </div>
+          ` : ''}
+          <p style="font-size:12px; color:var(--text-soft); margin-top:12px; text-align:center;">
+            Partner's email: <strong>${partnerEmail}</strong>
+          </p>
+        </div>
+      `;
+    } catch (err) {
+      console.error('Status check error:', err);
+      resultDiv.innerHTML = `<div class="alert error">${err.message || 'Error checking status. Please try again.'}</div>`;
+    }
+  }
 
   // ===== MAKE FUNCTIONS GLOBAL =====
-  window.goToStep = goToStep;
+    window.goToStep = goToStep;
+  window.toggleStatusCheck = toggleStatusCheck;
+  window.checkMyStatus = checkMyStatus;
   window.resetForm = resetForm;
   window.searchChainMatches = performChainSearch;
 
