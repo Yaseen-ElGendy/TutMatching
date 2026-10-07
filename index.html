@@ -362,21 +362,10 @@
             <button type="submit" class="btn-primary">Continue</button>
           </div>
         </form>
-               <div id="alert1"></div>
+                     <div id="alert1"></div>
 
         <div style="text-align:center; margin-top:16px;">
-          <a href="#" onclick="window.toggleStatusCheck(); return false;" style="font-size:13px; color:var(--primary);">Already submitted? Check your status</a>
-        </div>
-
-        <div id="statusCheckSection" class="hidden" style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
-          <div class="field">
-            <label for="statusCheckId">Student ID</label>
-            <input id="statusCheckId" type="text" placeholder="55-1234">
-          </div>
-          <div class="button-group">
-            <button type="button" class="btn-secondary" onclick="window.checkMyStatus()">Check Status</button>
-          </div>
-          <div id="statusCheckResult" style="margin-top:16px;"></div>
+          <a href="#" onclick="window.showStatusCheck(); return false;" style="font-size:13px; color:var(--primary);">Already submitted? Check your status</a>
         </div>
       </div>
 
@@ -489,7 +478,22 @@
       </div>
     </div>
   </div>
-
+  <!-- STATUS CHECK -->
+  <div id="statusCheckPage" class="hidden">
+    <div class="card">
+      <div class="step-number">Check Status</div>
+      <h2>Already Submitted?</h2>
+      <div class="field">
+        <label for="statusCheckId">Student ID</label>
+        <input id="statusCheckId" type="text" placeholder="55-1234">
+      </div>
+      <div class="button-group">
+        <button type="button" class="btn-secondary" onclick="window.hideStatusCheck()">Back</button>
+        <button type="button" class="btn-primary" onclick="window.checkMyStatus()">Check Status</button>
+      </div>
+      <div id="statusCheckResult" style="margin-top:16px;"></div>
+    </div>
+  </div>
   <!-- RESULTS SECTION -->
   <div id="resultsSection" class="hidden">
     <div class="card">
@@ -953,8 +957,16 @@
     goToStep(1);
   }
   // ===== STATUS CHECK =====
-  function toggleStatusCheck() {
-    document.getElementById('statusCheckSection').classList.toggle('hidden');
+  function showStatusCheck() {
+    document.getElementById('formSection').classList.add('hidden');
+    document.getElementById('statusCheckPage').classList.remove('hidden');
+    document.getElementById('statusCheckId').value = '';
+    document.getElementById('statusCheckResult').innerHTML = '';
+  }
+
+  function hideStatusCheck() {
+    document.getElementById('statusCheckPage').classList.add('hidden');
+    document.getElementById('formSection').classList.remove('hidden');
   }
 
   async function checkMyStatus() {
@@ -1052,7 +1064,8 @@
 
   // ===== MAKE FUNCTIONS GLOBAL =====
     window.goToStep = goToStep;
-  window.toggleStatusCheck = toggleStatusCheck;
+    window.showStatusCheck = showStatusCheck;
+  window.hideStatusCheck = hideStatusCheck;
   window.checkMyStatus = checkMyStatus;
   window.resetForm = resetForm;
   window.searchChainMatches = performChainSearch;
