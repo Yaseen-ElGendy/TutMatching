@@ -745,8 +745,27 @@
             });
 
           // Update statuses
-          await supabase.from('submissions').update({ status: 'matched', matched_at: new Date().toISOString() }).eq('id', candidate.id);
+                   await supabase.from('submissions').update({ status: 'matched', matched_at: new Date().toISOString() }).eq('id', candidate.id);
           await supabase.from('submissions').update({ status: 'matched', matched_at: new Date().toISOString() }).eq('id', newSubmission.id);
+
+          // Notify the OTHER student (the one who already left the page) by email
+          try {
+            await fetch('https://pyegfqoxnofszjbpcyil.functions.supabase.co/notify-match', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZWdmcW94bm9mc3pqYnBjeWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NjEzOTgsImV4cCI6MjEwNTMzNzM5OH0.4pO-72hxkb2zMyDK3rRmNYB4wen-ibEq6B7X9RBKW38'
+              },
+              body: JSON.stringify({
+                to: candidate.email,
+                yourTut: candidate.current_tut,
+                partnerTut: newSubmission.current_tut,
+                coordinatorNeeded: coordinatorNeeded
+              })
+            });
+          } catch (emailErr) {
+            console.error('Notification email failed (match still succeeded):', emailErr);
+          }
 
           return { match: match[0], partner: candidate, partnerEmail: candidate.email, coordinator: coordinatorNeeded, type: 'direct' };
         }
