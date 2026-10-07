@@ -362,7 +362,22 @@
             <button type="submit" class="btn-primary">Continue</button>
           </div>
         </form>
-        <div id="alert1"></div>
+               <div id="alert1"></div>
+
+        <div style="text-align:center; margin-top:16px;">
+          <a href="#" onclick="window.toggleStatusCheck(); return false;" style="font-size:13px; color:var(--primary);">Already submitted? Check your status</a>
+        </div>
+
+        <div id="statusCheckSection" class="hidden" style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+          <div class="field">
+            <label for="statusCheckId">Student ID</label>
+            <input id="statusCheckId" type="text" placeholder="55-1234">
+          </div>
+          <div class="button-group">
+            <button type="button" class="btn-secondary" onclick="window.checkMyStatus()">Check Status</button>
+          </div>
+          <div id="statusCheckResult" style="margin-top:16px;"></div>
+        </div>
       </div>
 
       <div id="step2" class="step hidden">
