@@ -781,13 +781,53 @@
         }
       }
 
-      return null;
+           return null;
     } catch (err) {
       console.error('Match error:', err);
       throw err;
     }
   }
 
+  function showResults(submission, matchResult, email) {
+    document.getElementById('formSection').classList.add('hidden');
+    document.getElementById('resultsSection').classList.remove('hidden');
+
+    const resultsDiv = document.getElementById('matchResults');
+
+    if (matchResult && matchResult.match) {
+      resultsDiv.innerHTML = `
+        <div class="match-card">
+          <div class="match-header">✓ MATCHED!</div>
+          <div class="match-info">
+            <strong>Your swap:</strong> Tut ${formData.currentTut} → Tut ${matchResult.partner.current_tut}<br>
+            <strong>Partner swap:</strong> Tut ${matchResult.partner.current_tut} → Tut ${formData.currentTut}<br>
+            <strong>Partner ID:</strong> ${matchResult.partner.student_id}
+          </div>
+          ${matchResult.coordinator ? `
+            <div class="coordinator-note">
+              <strong>⚠️ Coordinator Approval Needed</strong><br>
+              You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
+            </div>
+          ` : ''}
+          <button class="portal-button" onclick="window.open('${GUC_PORTAL_URL}', '_blank'); return false;">
+            Go to GUC Portal
+          </button>
+          <p style="font-size: 12px; color: var(--text-soft); margin-top: 12px; text-align: center;">
+            Partner's email: <strong>${matchResult.partnerEmail}</strong>
+          </p>
+        </div>
+      `;
+    } else {
+      resultsDiv.innerHTML = `
+        <div class="empty-state">
+          <p style="font-size: 15px; margin-bottom: 12px;"><strong>You're in the queue!</strong></p>
+          <p>No direct match yet. You can check back later using "Already submitted? Check your status" on the home page.</p>
+        </div>
+      `;
+    }
+
+    window.scrollTo(0, 0);
+  }
 
   function resetForm() {
     document.getElementById('formSection').classList.remove('hidden');
