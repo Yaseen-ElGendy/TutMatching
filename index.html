@@ -272,11 +272,6 @@
     margin-top: 12px;
   }
 
-  .chain-search-section {
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 2px solid var(--border);
-  }
 
   .chain-result {
     background: var(--primary-light);
@@ -505,11 +500,7 @@
 
       <div id="matchResults"></div>
 
-      <div id="chainSearchSection" class="hidden chain-search-section">
-        <h3 style="font-size: 14px; margin-top: 0; margin-bottom: 16px;">No direct match yet?</h3>
-        <button class="btn-tertiary" onclick="window.searchChainMatches()" id="searchChainBtn">Search for Chain Matches</button>
-        <div id="chainResults" style="margin-top: 16px;"></div>
-      </div>
+     
 
       <div id="unmatchedRequests" style="margin-top: 28px;"></div>
 
@@ -797,150 +788,6 @@
     }
   }
 
-  // ===== CHAIN MATCHING =====
-  async function findChainMatches() {
-    try {
-      const { data: waiting } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('status', 'waiting');
-
-      if (!waiting || waiting.length < 2) return [];
-
-      const majorPrefix = formData.major.split('(')[0].trim();
-      const sameMajor = waiting.filter(r => r.major.split('(')[0].trim() === majorPrefix);
-
-      // Find the current user's own submission (nodeA is always YOU)
-      const nodeA = sameMajor.find(r => r.id === currentSubmissionId);
-      if (!nodeA) return [];
-
-      const chains = [];
-      const seenNextLink = new Set(); // dedupe: only show each distinct next-partner once
-
-      // Only search for cycles that start with the current user
-      for (const nodeB of sameMajor) {
-        if (nodeB.id === nodeA.id) continue;
-        if (seenNextLink.has(nodeB.id)) continue;
-
-        const nodeADesiredList = parseTutList(nodeA.desired_tut);
-        const nodeBCurrent = nodeB.current_tut.trim();
-
-        // You'd accept B's tutorial
-        if (nodeADesiredList.includes(nodeBCurrent)) {
-          const nodeBDesiredList = parseTutList(nodeB.desired_tut);
-
-          for (const nodeC of sameMajor) {
-            if (nodeC.id === nodeA.id || nodeC.id === nodeB.id) continue;
-
-            const nodeCCurrent = nodeC.current_tut.trim();
-            const nodeCDesiredList = parseTutList(nodeC.desired_tut);
-
-            // B would accept C's tutorial AND C would accept YOUR tutorial (closes the loop)
-            if (nodeBDesiredList.includes(nodeCCurrent) &&
-                nodeCDesiredList.includes(nodeA.current_tut.trim())) {
-              chains.push({
-                participants: [nodeA, nodeB, nodeC],
-                nextLink: { from: nodeA.student_id, to: nodeB.student_id, tutSwap: `${nodeA.current_tut} → ${nodeB.current_tut}` }
-              });
-              seenNextLink.add(nodeB.id); // one card per distinct next-partner, even if multiple C's would close it
-              break;
-            }
-          }
-        }
-      }
-
-      return chains;
-    } catch (err) {
-      console.error('Chain search error:', err);
-      return [];
-    }
-  }
-
-  async function displayChainMatches(chains) {
-    const resultsDiv = document.getElementById('chainResults');
-
-    if (chains.length === 0) {
-      resultsDiv.innerHTML = '<div class="empty-state"><p>No chain matches found yet. Check back later!</p></div>';
-      return;
-    }
-
-    let html = '<div style="font-size: 13px; color: var(--text-soft); margin-bottom: 16px;">Found ' + chains.length + ' potential chain match(es):</div>';
-
-    chains.forEach((chain, idx) => {
-      html += `
-        <div class="chain-result">
-          <div class="label">Chain ${idx + 1}</div>
-          <div class="detail">You swap: Tut ${chain.nextLink.tutSwap}</div>
-          <div class="detail">Next in chain: ${chain.nextLink.to}</div>
-        </div>
-      `;
-    });
-
-    resultsDiv.innerHTML = html;
-  }
-
-  function showResults(submission, matchResult, email) {
-    document.getElementById('formSection').classList.add('hidden');
-    document.getElementById('resultsSection').classList.remove('hidden');
-
-    const resultsDiv = document.getElementById('matchResults');
-
-    if (matchResult && matchResult.match) {
-      // Direct match found
-      resultsDiv.innerHTML = `
-        <div class="match-card">
-          <div class="match-header">✓ MATCHED!</div>
-          <div class="match-info">
-            <strong>Your swap:</strong> Tut ${formData.currentTut} → Tut ${matchResult.partner.current_tut}<br>
-            <strong>Partner swap:</strong> Tut ${matchResult.partner.current_tut} → Tut ${formData.currentTut}<br>
-            <strong>Partner ID:</strong> ${matchResult.partner.student_id}
-          </div>
-          ${matchResult.coordinator ? `
-            <div class="coordinator-note">
-              <strong>⚠️ Coordinator Approval Needed</strong><br>
-              You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
-            </div>
-          ` : ''}
-          <button class="portal-button" onclick="window.open('${GUC_PORTAL_URL}', '_blank'); return false;">
-            Go to GUC Portal
-          </button>
-          <p style="font-size: 12px; color: var(--text-soft); margin-top: 12px; text-align: center;">
-            Partner's email: <strong>${matchResult.partnerEmail}</strong>
-          </p>
-        </div>
-      `;
-      document.getElementById('chainSearchSection').classList.add('hidden');
-    } else {
-      // No direct match
-      resultsDiv.innerHTML = `
-        <div class="empty-state">
-          <p style="font-size: 15px; margin-bottom: 12px;"><strong>You're in the queue!</strong></p>
-          <p>No direct match yet. We're looking...</p>
-        </div>
-      `;
-      document.getElementById('chainSearchSection').classList.remove('hidden');
-      document.getElementById('searchChainBtn').onclick = () => performChainSearch();
-    }
-
-    window.scrollTo(0, 0);
-  }
-
-  async function performChainSearch() {
-    const btn = document.getElementById('searchChainBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner"></span> Searching...';
-
-    try {
-      const chains = await findChainMatches();
-      await displayChainMatches(chains);
-    } catch (err) {
-      console.error('Chain search error:', err);
-      document.getElementById('chainResults').innerHTML = '<div class="alert error">Error searching for chain matches. Please try again.</div>';
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = 'Search for Chain Matches';
-  }
 
   function resetForm() {
     document.getElementById('formSection').classList.remove('hidden');
@@ -1068,7 +915,7 @@
   window.hideStatusCheck = hideStatusCheck;
   window.checkMyStatus = checkMyStatus;
   window.resetForm = resetForm;
-  window.searchChainMatches = performChainSearch;
+
 
   // Init
   updateProgress();
