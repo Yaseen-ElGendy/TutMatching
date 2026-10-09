@@ -461,7 +461,7 @@
             <label for="email">GUC Email *</label>
             <input id="email" type="email" placeholder="your.email@guc.edu.eg" required>
             <div style="font-size: 12px; color: var(--text-soft); margin-top: 6px;">
-              Must be your GUC email address.
+             Must be your GUC email address. We'll email you here when a match is found.
             </div>
           </div>
           <div class="button-group">
@@ -847,7 +847,7 @@
       resultsDiv.innerHTML = `
         <div class="empty-state">
           <p style="font-size: 15px; margin-bottom: 12px;"><strong>You're in the queue!</strong></p>
-          <p>No direct match yet. You can check back later using "Already submitted? Check your status" on the home page.</p>
+                  <p>No match yet. We'll email you at <strong>${email}</strong> as soon as one is found (check your junk folder too). You can also check back anytime using "Already submitted? Check your status" on the home page.</p>
         </div>
       `;
     }
@@ -912,7 +912,8 @@
         resultDiv.innerHTML = `
           <div class="empty-state">
             <p><strong>Still in the queue.</strong></p>
-            <p>Tut ${mySub.current_tut} → Tut ${mySub.desired_tut.split(',').join(' or ')}</p>
+                       <p>Tut ${mySub.current_tut} → Tut ${mySub.desired_tut.split(',').join(' or ')}</p>
+            <p style="margin-top:10px; font-size:13px;">We'll email you at <strong>${mySub.email}</strong> as soon as a match is found (check your junk folder too).</p>
           </div>
         `;
         return;
