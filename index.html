@@ -775,92 +775,43 @@
     return str.split(',').map(t => t.trim()).filter(t => t.length > 0);
   }
 
-  // ===== MATCHING LOGIC =====
+    // ===== MATCHING LOGIC =====
+  // Matching runs inside the database, one request at a time, so two
+  // simultaneous submissions can never be matched to the same person.
   async function checkForMatch(newSubmission, email) {
-    try {
-      const { data: waiting } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('status', 'waiting')
-        .neq('id', newSubmission.id);
+    const { data, error } = await supabase.rpc('match_submission', {
+      p_submission_id: newSubmission.id
+    });
+    if (error) throw error;
+    if (!data || !data.matched) return null;
 
-      if (!waiting || waiting.length === 0) return null;
-
-      for (const candidate of waiting) {
-        const candidateMajor = candidate.major.split('(')[0].trim();
-        const newMajor = newSubmission.major.split('(')[0].trim();
-        
-        const candidateCurrent = candidate.current_tut.trim();
-        const candidateDesiredList = parseTutList(candidate.desired_tut);
-        const newCurrent = newSubmission.current_tut.trim();
-        const newDesiredList = parseTutList(newSubmission.desired_tut);
-
-        // Mutual fit: candidate's current tut is something I'd accept,
-        // AND my current tut is something the candidate would accept
-        if (
-          candidateMajor === newMajor &&
-          newDesiredList.includes(candidateCurrent) &&
-          candidateDesiredList.includes(newCurrent)
-        ) {
-          const coordinatorNeeded = 
-            (candidate.german_level && newSubmission.german_level && candidate.german_level !== newSubmission.german_level) ||
-            (candidate.english_level && newSubmission.english_level && candidate.english_level !== newSubmission.english_level);
-
-          const { data: match, error: matchErr } = await supabase
-            .from('matches')
-            .insert({
-              submission_a_id: candidate.id,
-              submission_b_id: newSubmission.id,
-              coordinator_needed: coordinatorNeeded,
-              created_at: new Date().toISOString()
-            })
-            .select();
-
-          if (matchErr) throw matchErr;
-
-          // Create contact record with both emails
-          await supabase
-            .from('match_contacts')
-            .insert({
-              match_id: match[0].id,
-              student_a_id: candidate.student_id,
-              student_a_email: candidate.email,
-              student_b_id: newSubmission.student_id,
-              student_b_email: email
-            });
-
-          // Update statuses
-                   await supabase.from('submissions').update({ status: 'matched', matched_at: new Date().toISOString() }).eq('id', candidate.id);
-          await supabase.from('submissions').update({ status: 'matched', matched_at: new Date().toISOString() }).eq('id', newSubmission.id);
-
-          // Notify the OTHER student (the one who already left the page) by email
-          try {
-            await fetch('https://pyegfqoxnofszjbpcyil.functions.supabase.co/notify-match', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZWdmcW94bm9mc3pqYnBjeWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NjEzOTgsImV4cCI6MjEwNTMzNzM5OH0.4pO-72hxkb2zMyDK3rRmNYB4wen-ibEq6B7X9RBKW38'
-              },
-              body: JSON.stringify({
-                to: candidate.email,
-                yourTut: candidate.current_tut,
-                partnerTut: newSubmission.current_tut,
-                coordinatorNeeded: coordinatorNeeded
-              })
-            });
-          } catch (emailErr) {
-            console.error('Notification email failed (match still succeeded):', emailErr);
-          }
-
-          return { match: match[0], partner: candidate, partnerEmail: candidate.email, coordinator: coordinatorNeeded, type: 'direct' };
-        }
+    // Only the request that actually created the match emails the partner
+    if (data.newly_matched) {
+      try {
+        await fetch('https://pyegfqoxnofszjbpcyil.functions.supabase.co/notify-match', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + SUPABASE_KEY
+          },
+          body: JSON.stringify({
+            to: data.partner_email,
+            yourTut: data.partner_current_tut,
+            partnerTut: newSubmission.current_tut,
+            coordinatorNeeded: data.coordinator_needed
+          })
+        });
+      } catch (emailErr) {
+        console.error('Notification email failed (match still succeeded):', emailErr);
       }
-
-           return null;
-    } catch (err) {
-      console.error('Match error:', err);
-      throw err;
     }
+
+    return {
+      match: true,
+      partner: { current_tut: data.partner_current_tut, student_id: data.partner_student_id },
+      partnerEmail: data.partner_email,
+      coordinator: data.coordinator_needed
+    };
   }
 
   function showResults(submission, matchResult, email) {
