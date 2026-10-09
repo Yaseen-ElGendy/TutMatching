@@ -637,64 +637,139 @@
 
     goToStep(4);
   });
+    // ===== STEP 4 =====
+  let pendingReplace = null;
 
-  // ===== STEP 4 =====
   document.getElementById('step4Form').addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAlerts();
 
-    const email = document.getElementById('email').value.trim();
+    const email = document.getElementById('email').value.trim().toLowerCase();
     if (!email) {
       showAlert(4, 'Please enter your email.');
       return;
     }
-    if (!email.toLowerCase().endsWith(GUC_EMAIL_DOMAIN)) {
+    if (!email.endsWith(GUC_EMAIL_DOMAIN)) {
       showAlert(4, `Please use your GUC email address (ends with ${GUC_EMAIL_DOMAIN}).`);
       return;
     }
 
     try {
-      const { data: existing, error: checkErr } = await supabase
+      const { data: byEmail, error: emailErr } = await supabase
         .from('submissions')
-        .select('id')
+        .select('*')
+        .eq('email', email)
+        .in('status', ['waiting', 'matched']);
+      if (emailErr) throw emailErr;
+
+      const { data: byId, error: idErr } = await supabase
+        .from('submissions')
+        .select('*')
         .eq('student_id', formData.studentId)
         .in('status', ['waiting', 'matched']);
+      if (idErr) throw idErr;
 
-      if (checkErr) throw checkErr;
-      if (existing && existing.length > 0) {
-        showAlert(4, 'You already have an active swap request.');
+      const emailRows = byEmail || [];
+      const idRows = byId || [];
+
+      if ([...emailRows, ...idRows].some(r => r.status === 'matched')) {
+        showAlert(4, 'You have already been matched. Use "Already submitted? Check your status" on the home page.');
         return;
       }
 
-      const { data: submission, error: insertErr } = await supabase
-        .from('submissions')
-        .insert({
-          student_id: formData.studentId,
-          email: email,
-          major: formData.major,
-          current_tut: formData.currentTut,
-          desired_tut: formData.desiredTut,
-          german_level: formData.germanLevel,
-          english_level: formData.englishLevel,
-          status: 'waiting',
-          created_at: new Date().toISOString()
-        })
-        .select();
+      if (emailRows.some(r => r.student_id !== formData.studentId)) {
+        showAlert(4, 'This email already has a request under a different student ID.');
+        return;
+      }
 
-      if (insertErr) throw insertErr;
+      if (idRows.some(r => (r.email || '').toLowerCase() !== email)) {
+        showAlert(4, 'This student ID already has an active request under a different email.');
+        return;
+      }
 
-      const newSubmission = submission[0];
-      currentSubmissionId = newSubmission.id;
+      if (emailRows.length > 0) {
+        showReplaceWarning(emailRows[0], email);
+        return;
+      }
 
-      const match = await checkForMatch(newSubmission, email);
-      showResults(newSubmission, match, email);
-
+      await submitRequest(email, null);
     } catch (err) {
       console.error('Submit error:', err);
       showAlert(4, err.message || 'Error submitting. Please try again.');
     }
   });
 
+  function showReplaceWarning(existing, email) {
+    pendingReplace = { id: existing.id, email: email };
+    const oldSwap = `Tut ${existing.current_tut} → ${existing.desired_tut.split(',').join(' or ')}`;
+    document.getElementById('alert4').innerHTML = `
+      <div class="alert" style="background:#fff3cd; color:#5c4400; border:1px solid #cc9a00;">
+        <strong>You already have a request (${oldSwap}).</strong><br>
+        Submitting this one will remove your previous request.
+        <div class="button-group" style="margin-top:14px;">
+          <button type="button" class="btn-secondary" onclick="window.cancelReplace()">Cancel</button>
+          <button type="button" class="btn-primary" onclick="window.confirmReplace()">Replace</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function cancelReplace() {
+    pendingReplace = null;
+    clearAlerts();
+  }
+
+  async function confirmReplace() {
+    if (!pendingReplace) return;
+    const { id, email } = pendingReplace;
+    pendingReplace = null;
+    await submitRequest(email, id);
+  }
+
+  async function submitRequest(email, replaceId) {
+    clearAlerts();
+    try {
+      const row = {
+        student_id: formData.studentId,
+        email: email,
+        major: formData.major,
+        current_tut: formData.currentTut,
+        desired_tut: formData.desiredTut,
+        german_level: formData.germanLevel,
+        english_level: formData.englishLevel,
+        status: 'waiting',
+        created_at: new Date().toISOString(),
+        matched_at: null
+      };
+
+      let result;
+      if (replaceId) {
+        result = await supabase
+          .from('submissions')
+          .update(row)
+          .eq('id', replaceId)
+          .eq('status', 'waiting')
+          .select();
+      } else {
+        result = await supabase.from('submissions').insert(row).select();
+      }
+
+      if (result.error) throw result.error;
+      if (!result.data || result.data.length === 0) {
+        showAlert(4, 'Your previous request was just matched, so it could not be replaced. Use "Check your status" on the home page.');
+        return;
+      }
+
+      const newSubmission = result.data[0];
+      currentSubmissionId = newSubmission.id;
+
+      const match = await checkForMatch(newSubmission, email);
+      showResults(newSubmission, match, email);
+    } catch (err) {
+      console.error('Submit error:', err);
+      showAlert(4, err.message || 'Error submitting. Please try again.');
+    }
+  }
   // ===== HELPER: parse comma-separated tutorial list into array =====
   function parseTutList(str) {
     return str.split(',').map(t => t.trim()).filter(t => t.length > 0);
@@ -950,11 +1025,13 @@
   }
 
   // ===== MAKE FUNCTIONS GLOBAL =====
-    window.goToStep = goToStep;
-    window.showStatusCheck = showStatusCheck;
+  window.goToStep = goToStep;
+  window.showStatusCheck = showStatusCheck;
   window.hideStatusCheck = hideStatusCheck;
   window.checkMyStatus = checkMyStatus;
   window.resetForm = resetForm;
+  window.cancelReplace = cancelReplace;
+  window.confirmReplace = confirmReplace;
 
 
   // Init
