@@ -189,16 +189,6 @@
     background: var(--primary-light);
   }
 
-  .btn-tertiary {
-    background: var(--accent);
-    color: white;
-    flex: 1;
-  }
-
-  .btn-tertiary:hover {
-    background: #009941;
-  }
-
   .alert {
     padding: 14px 16px;
     border-radius: 6px;
@@ -262,7 +252,7 @@
     background: #e6b800;
   }
 
-   .coordinator-note {
+  .coordinator-note {
     background: #fff3cd;
     border-left: 4px solid #cc9a00;
     padding: 12px 14px;
@@ -272,26 +262,6 @@
     margin-top: 12px;
   }
 
-
-  .chain-result {
-    background: var(--primary-light);
-    border: 1px solid var(--primary);
-    border-radius: 6px;
-    padding: 14px;
-    margin-bottom: 10px;
-  }
-
-  .chain-result .label {
-    font-weight: 600;
-    color: var(--text);
-    font-size: 13px;
-  }
-
-  .chain-result .detail {
-    font-size: 12px;
-    color: var(--text-soft);
-    margin-top: 4px;
-  }
 
   .empty-state {
     text-align: center;
@@ -327,6 +297,33 @@
     border-top: 1px solid var(--border);
   }
 
+  .hint { font-size: 12px; color: var(--text-soft); margin-top: 6px; }
+
+  .alert.warn {
+    background: #fff3cd;
+    color: #5c4400;
+    border: 1px solid #cc9a00;
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--error);
+    border: 1.5px solid var(--error);
+  }
+
+  .btn-danger:hover { background: var(--error-bg); }
+
+  .btn-danger-solid { background: var(--error); color: white; }
+
+  .privacy-note {
+    background: var(--primary-light);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text);
+    margin-top: 10px;
+  }
+
   .hidden { display: none; }
 </style>
 </head>
@@ -357,10 +354,10 @@
             <button type="submit" class="btn-primary">Continue</button>
           </div>
         </form>
-                     <div id="alert1"></div>
+        <div id="alert1"></div>
 
         <div style="text-align:center; margin-top:16px;">
-          <a href="#" onclick="window.showStatusCheck(); return false;" style="font-size:13px; color:var(--primary);">Already submitted? Check your status</a>
+          <a href="#" id="statusLink" style="font-size:13px; color:var(--primary);">Already submitted? Check your status</a>
         </div>
       </div>
 
@@ -370,10 +367,10 @@
         <form id="step2Form">
           <div class="field">
             <label for="major">Major</label>
-                         <select id="major" required>
+            <select id="major" required>
               <option value="">Select your major</option>
-              <option>Business Informatics</option>   
-              <option>Mechatronics Engineering</option>             
+              <option>Business Informatics</option>
+              <option>Mechatronics Engineering</option>
               <option>Digital Media Engineering and Technology</option>
               <option>Design and Production Engineering</option>
               <option>Architecture Engineering</option>
@@ -402,12 +399,12 @@
           <div class="field">
             <label for="desiredTut">Desired Tutorial(s)</label>
             <input id="desiredTut" type="text" placeholder="e.g. 7 or 3,4,5" inputmode="numeric" required>
-            <div style="font-size: 12px; color: var(--text-soft); margin-top: 6px;">
+            <div class="hint">
               Flexible? List every tutorial you'd accept, separated by commas (e.g. 3,4,5). One number if you only want one specific tutorial.
             </div>
           </div>
           <div class="button-group">
-            <button type="button" class="btn-secondary" onclick="window.goToStep(1)">Back</button>
+            <button type="button" class="btn-secondary" data-go="1">Back</button>
             <button type="submit" class="btn-primary">Continue</button>
           </div>
         </form>
@@ -440,7 +437,7 @@
             </select>
           </div>
           <div class="button-group">
-            <button type="button" class="btn-secondary" onclick="window.goToStep(2)">Back</button>
+            <button type="button" class="btn-secondary" data-go="2">Back</button>
             <button type="submit" class="btn-primary">Continue</button>
           </div>
         </form>
@@ -456,62 +453,77 @@
           <div style="margin-bottom: 12px;"><strong>Swap:</strong> <span id="confirmSwap"></span></div>
           <div id="confirmLevels"></div>
         </div>
-        <form id="step4Form">
+        <form id="step4Form" autocomplete="off">
           <div class="field">
             <label for="email">GUC Email *</label>
-            <input id="email" type="email" placeholder="your.email@guc.edu.eg" required>
-            <div style="font-size: 12px; color: var(--text-soft); margin-top: 6px;">
-             Must be your GUC email address. We'll email you here when a match is found.
+            <input id="email" type="email" placeholder="your.name@student.guc.edu.eg" required>
+            <div class="hint">
+              Must be your GUC student email. We'll email you here when a match is found, and you'll need it with your ID to check or cancel your request.
+            </div>
+          </div>
+          <div class="field">
+            <label for="emailConfirm">Confirm GUC Email *</label>
+            <input id="emailConfirm" type="email" placeholder="Type it again" required>
+          </div>
+          <div class="field">
+            <label for="whatsapp">WhatsApp username (optional)</label>
+            <input id="whatsapp" type="text" placeholder="e.g. your.username" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <div class="privacy-note">
+              If you add one, your WhatsApp username will be shown to your matched partner (together with your email) as an easier way to connect. Leave it blank to be contacted by email only.
             </div>
           </div>
           <div class="button-group">
-            <button type="button" class="btn-secondary" onclick="window.goToStep(3)">Back</button>
-            <button type="submit" class="btn-primary">Submit Request</button>
+            <button type="button" class="btn-secondary" data-go="3">Back</button>
+            <button type="submit" class="btn-primary" id="submitBtn">Submit Request</button>
           </div>
         </form>
         <div id="alert4"></div>
       </div>
     </div>
   </div>
+
   <!-- STATUS CHECK -->
   <div id="statusCheckPage" class="hidden">
     <div class="card">
       <div class="step-number">Check Status</div>
       <h2>Already Submitted?</h2>
-      <div class="field">
-        <label for="statusCheckId">Student ID</label>
-        <input id="statusCheckId" type="text" placeholder="55-1234">
-      </div>
-      <div class="button-group">
-        <button type="button" class="btn-secondary" onclick="window.hideStatusCheck()">Back</button>
-        <button type="button" class="btn-primary" onclick="window.checkMyStatus()">Check Status</button>
-      </div>
+      <form id="statusForm" autocomplete="off">
+        <div class="field">
+          <label for="statusCheckId">Student ID</label>
+          <input id="statusCheckId" type="text" placeholder="55-1234" required>
+        </div>
+        <div class="field">
+          <label for="statusCheckEmail">GUC Email</label>
+          <input id="statusCheckEmail" type="email" placeholder="your.name@student.guc.edu.eg" required>
+          <div class="hint">Use the same ID and email you submitted with.</div>
+        </div>
+        <div class="button-group">
+          <button type="button" class="btn-secondary" id="statusBackBtn">Back</button>
+          <button type="submit" class="btn-primary" id="statusBtn">Check Status</button>
+        </div>
+      </form>
       <div id="statusCheckResult" style="margin-top:16px;"></div>
     </div>
   </div>
+
   <!-- RESULTS SECTION -->
   <div id="resultsSection" class="hidden">
     <div class="card">
       <div style="text-align: center; margin-bottom: 28px;">
         <div style="font-size: 48px; margin-bottom: 12px;">✓</div>
         <h2 style="margin: 0;">Request Submitted!</h2>
-        <p style="color: var(--text-soft); font-size: 14px; margin: 8px 0 0;">We're looking for a match...</p>
       </div>
 
       <div id="matchResults"></div>
 
-     
-
-      <div id="unmatchedRequests" style="margin-top: 28px;"></div>
-
       <div style="text-align: center; margin-top: 28px;">
-        <button class="btn-primary" onclick="window.resetForm()" style="width: 100%;">Submit Another Request</button>
+        <button class="btn-primary" id="anotherBtn" style="width: 100%;">Back to Home</button>
       </div>
     </div>
   </div>
 
   <footer>
-    Your email is only shown to your matched student. Data is stored securely.
+    Your details are stored privately. Your email (and WhatsApp username, if you add one) is only shown to your matched partner.
   </footer>
 </div>
 
@@ -522,6 +534,7 @@
   // ===== CONFIG =====
   const SUPABASE_URL = 'https://pyegfqoxnofszjbpcyil.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZWdmcW94bm9mc3pqYnBjeWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NjEzOTgsImV4cCI6MjEwNTMzNzM5OH0.4pO-72hxkb2zMyDK3rRmNYB4wen-ibEq6B7X9RBKW38';
+  const NOTIFY_URL = 'https://pyegfqoxnofszjbpcyil.functions.supabase.co/notify-match';
   const GUC_PORTAL_URL = 'https://student.guc.edu.eg/';
   // Only emails ending in this domain are accepted
   const GUC_EMAIL_DOMAIN = '@student.guc.edu.eg';
@@ -530,42 +543,84 @@
 
   let currentStep = 1;
   let formData = {};
-  let currentSubmissionId = null;
+  // ID + email of the request being looked at on the status page
+  let statusCtx = null;
 
   // ===== UTILITIES =====
+  const $ = (id) => document.getElementById(id);
+
+  // Escape anything that came from a user before putting it into innerHTML
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   function updateProgress() {
-    document.getElementById('progressFill').style.width = (currentStep * 25) + '%';
+    $('progressFill').style.width = (currentStep * 25) + '%';
   }
 
   function goToStep(step) {
     currentStep = step;
     document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
-    document.getElementById('step' + step).classList.remove('hidden');
+    $('step' + step).classList.remove('hidden');
     updateProgress();
     window.scrollTo(0, 0);
   }
 
   function showAlert(stepNum, msg, type = 'error') {
-    const el = document.getElementById('alert' + stepNum);
-    el.innerHTML = `<div class="alert ${type}">${msg}</div>`;
+    $('alert' + stepNum).innerHTML = `<div class="alert ${type}">${esc(msg)}</div>`;
   }
 
   function clearAlerts() {
-    ['alert1', 'alert2', 'alert3', 'alert4'].forEach(id => document.getElementById(id).innerHTML = '');
+    ['alert1', 'alert2', 'alert3', 'alert4'].forEach(id => { $(id).innerHTML = ''; });
+  }
+
+  function show(id) { $(id).classList.remove('hidden'); }
+  function hide(id) { $(id).classList.add('hidden'); }
+
+  function swapText(cur, desiredCsv) {
+    return `Tut ${esc(cur)} → Tut ${esc(String(desiredCsv).split(',').join(' or '))}`;
+  }
+
+  // Emails are sent by the server from its own queue; the page only passes ids.
+  async function sendNotifications(ids) {
+    if (!ids || !ids.length) return;
+    await Promise.allSettled(ids.map(id =>
+      fetch(NOTIFY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        body: JSON.stringify({ notification_id: id })
+      }).catch(e => console.error('Notification email failed (the rest still succeeded):', e))
+    ));
+  }
+
+  function partnerBlock(d) {
+    const wa = d.partner_whatsapp
+      ? `<br><strong>Partner's WhatsApp:</strong> ${esc(d.partner_whatsapp)}`
+      : '';
+    return `
+      <div class="match-info">
+        <strong>Your swap:</strong> Tut ${esc(d.my_tut)} → Tut ${esc(d.partner_tut)}<br>
+        <strong>Partner swap:</strong> Tut ${esc(d.partner_tut)} → Tut ${esc(d.my_tut)}<br>
+        <strong>Partner ID:</strong> ${esc(d.partner_student_id)}<br>
+        <strong>Partner's email:</strong> ${esc(d.partner_email)}${wa}
+      </div>
+      ${d.coordinator_needed ? `
+        <div class="coordinator-note">
+          <strong>⚠️ Coordinator Approval Needed</strong><br>
+          You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
+        </div>` : ''}
+      <a class="portal-button" href="${GUC_PORTAL_URL}" target="_blank" rel="noopener">Log in to your GUC Portal</a>
+    `;
   }
 
   // ===== STEP 1 =====
-  document.getElementById('step1Form').addEventListener('submit', (e) => {
+  $('step1Form').addEventListener('submit', (e) => {
     e.preventDefault();
     clearAlerts();
-    const id = document.getElementById('studentId').value.trim();
-    
-    if (!/^[\d\-]+$/.test(id)) {
-      showAlert(1, 'Invalid ID. Use only numbers and dashes (e.g. 55-1234).');
-      return;
-    }
-    if (!id) {
-      showAlert(1, 'Please enter your student ID.');
+    const id = $('studentId').value.trim();
+    if (!/^\d+-\d+$/.test(id)) {
+      showAlert(1, 'Invalid ID. Use the format 55-1234.');
       return;
     }
     formData.studentId = id;
@@ -573,27 +628,25 @@
   });
 
   // ===== STEP 2 =====
-  document.getElementById('currentTut').addEventListener('input', (e) => {
+  $('currentTut').addEventListener('input', (e) => {
     e.target.value = e.target.value.replace(/[^\d]/g, '');
   });
-
-  document.getElementById('desiredTut').addEventListener('input', (e) => {
+  $('desiredTut').addEventListener('input', (e) => {
     e.target.value = e.target.value.replace(/[^\d,]/g, '');
   });
 
-  document.getElementById('step2Form').addEventListener('submit', (e) => {
+  $('step2Form').addEventListener('submit', (e) => {
     e.preventDefault();
     clearAlerts();
-    const major = document.getElementById('major').value;
-    const currentTut = document.getElementById('currentTut').value.trim();
-    const desiredTutRaw = document.getElementById('desiredTut').value.trim();
+    const major = $('major').value;
+    const currentTut = $('currentTut').value.trim();
+    const desiredTutRaw = $('desiredTut').value.trim();
 
     if (!major || !currentTut || !desiredTutRaw) {
       showAlert(2, 'Please fill in all fields.');
       return;
     }
 
-    // Parse comma-separated list, remove empty entries and duplicates
     const desiredList = [...new Set(
       desiredTutRaw.split(',').map(t => t.trim()).filter(t => t.length > 0)
     )];
@@ -602,12 +655,10 @@
       showAlert(2, 'Please enter at least one desired tutorial.');
       return;
     }
-
     if (desiredList.length > 10) {
       showAlert(2, 'Please list 10 or fewer tutorials.');
       return;
     }
-
     if (desiredList.includes(currentTut)) {
       showAlert(2, 'Your desired list can\'t include your current tutorial.');
       return;
@@ -615,378 +666,282 @@
 
     formData.major = major;
     formData.currentTut = currentTut;
-    formData.desiredTut = desiredList.join(','); // stored as clean comma-separated string
+    formData.desiredTut = desiredList.join(',');
     goToStep(3);
   });
 
   // ===== STEP 3 =====
-  document.getElementById('step3Form').addEventListener('submit', (e) => {
+  $('step3Form').addEventListener('submit', (e) => {
     e.preventDefault();
-    formData.germanLevel = document.getElementById('germanLevel').value || null;
-    formData.englishLevel = document.getElementById('englishLevel').value || null;
+    formData.germanLevel = $('germanLevel').value || null;
+    formData.englishLevel = $('englishLevel').value || null;
 
-    document.getElementById('confirmId').textContent = formData.studentId;
-    document.getElementById('confirmMajor').textContent = formData.major;
-    const desiredDisplay = formData.desiredTut.split(',').join(' or ');
-    document.getElementById('confirmSwap').textContent = formData.currentTut + ' → ' + desiredDisplay;
+    $('confirmId').textContent = formData.studentId;
+    $('confirmMajor').textContent = formData.major;
+    $('confirmSwap').textContent = formData.currentTut + ' → ' + formData.desiredTut.split(',').join(' or ');
 
     let levels = '';
-    if (formData.germanLevel) levels += `<div><strong>German:</strong> ${formData.germanLevel}</div>`;
-    if (formData.englishLevel) levels += `<div><strong>English:</strong> ${formData.englishLevel}</div>`;
-    if (levels) document.getElementById('confirmLevels').innerHTML = levels;
+    if (formData.germanLevel) levels += `<div><strong>German:</strong> ${esc(formData.germanLevel)}</div>`;
+    if (formData.englishLevel) levels += `<div><strong>English:</strong> ${esc(formData.englishLevel)}</div>`;
+    $('confirmLevels').innerHTML = levels;
 
     goToStep(4);
   });
-    // ===== STEP 4 =====
-  let pendingReplace = null;
 
-  document.getElementById('step4Form').addEventListener('submit', async (e) => {
+  // ===== STEP 4 =====
+  // Typing the email twice is the point, so pasting into the second box is blocked
+  $('emailConfirm').addEventListener('paste', (e) => e.preventDefault());
+
+  $('step4Form').addEventListener('submit', (e) => {
     e.preventDefault();
+    submitRequest(false);
+  });
+
+  async function submitRequest(replace) {
     clearAlerts();
 
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    if (!email) {
-      showAlert(4, 'Please enter your email.');
-      return;
-    }
+    const email = $('email').value.trim().toLowerCase();
+    const email2 = $('emailConfirm').value.trim().toLowerCase();
+    const whatsapp = $('whatsapp').value.trim().replace(/^@+/, '');
+
+    if (!email) { showAlert(4, 'Please enter your email.'); return; }
     if (!email.endsWith(GUC_EMAIL_DOMAIN)) {
       showAlert(4, `Please use your GUC email address (ends with ${GUC_EMAIL_DOMAIN}).`);
       return;
     }
+    if (email !== email2) {
+      showAlert(4, 'The two email addresses don\'t match. Please check them.');
+      return;
+    }
+    if (whatsapp && !/^[A-Za-z0-9._-]{1,40}$/.test(whatsapp)) {
+      showAlert(4, 'WhatsApp username can only contain letters, numbers, dots, underscores and dashes.');
+      return;
+    }
 
+    const btn = $('submitBtn');
+    btn.disabled = true;
     try {
-      const { data: byEmail, error: emailErr } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('email', email)
-        .in('status', ['waiting', 'matched']);
-      if (emailErr) throw emailErr;
+      const { data, error } = await supabase.rpc('submit_request', {
+        p_student_id: formData.studentId,
+        p_email: email,
+        p_major: formData.major,
+        p_current_tut: formData.currentTut,
+        p_desired_tut: formData.desiredTut,
+        p_german_level: formData.germanLevel,
+        p_english_level: formData.englishLevel,
+        p_whatsapp: whatsapp || null,
+        p_replace: replace
+      });
+      if (error) throw error;
 
-      const { data: byId, error: idErr } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('student_id', formData.studentId)
-        .in('status', ['waiting', 'matched']);
-      if (idErr) throw idErr;
-
-      const emailRows = byEmail || [];
-      const idRows = byId || [];
-
-      if ([...emailRows, ...idRows].some(r => r.status === 'matched')) {
-        showAlert(4, 'You have already been matched. Use "Already submitted? Check your status" on the home page.');
-        return;
+      switch (data.status) {
+        case 'invalid':
+          showAlert(4, data.message || 'Please check your details.');
+          return;
+        case 'already_matched':
+          showAlert(4, 'You have already been matched. Use "Already submitted? Check your status" on the home page. You can cancel your match from there.');
+          return;
+        case 'email_taken':
+          showAlert(4, 'This email already has a request under a different student ID.');
+          return;
+        case 'id_taken':
+          showAlert(4, 'This student ID already has an active request under a different email.');
+          return;
+        case 'needs_replace':
+          showReplaceWarning(data);
+          return;
+        case 'matched':
+        case 'queued':
+          await sendNotifications(data.notify);
+          showResults(data, email);
+          return;
+        default:
+          throw new Error('Unexpected response. Please try again.');
       }
-
-      if (emailRows.some(r => r.student_id !== formData.studentId)) {
-        showAlert(4, 'This email already has a request under a different student ID.');
-        return;
-      }
-
-      if (idRows.some(r => (r.email || '').toLowerCase() !== email)) {
-        showAlert(4, 'This student ID already has an active request under a different email.');
-        return;
-      }
-
-      if (emailRows.length > 0) {
-        showReplaceWarning(emailRows[0], email);
-        return;
-      }
-
-      await submitRequest(email, null);
     } catch (err) {
       console.error('Submit error:', err);
       showAlert(4, err.message || 'Error submitting. Please try again.');
+    } finally {
+      btn.disabled = false;
     }
-  });
+  }
 
-  function showReplaceWarning(existing, email) {
-    pendingReplace = { id: existing.id, email: email };
-    const oldSwap = `Tut ${existing.current_tut} → ${existing.desired_tut.split(',').join(' or ')}`;
-    document.getElementById('alert4').innerHTML = `
-      <div class="alert" style="background:#fff3cd; color:#5c4400; border:1px solid #cc9a00;">
-        <strong>You already have a request (${oldSwap}).</strong><br>
+  function showReplaceWarning(info) {
+    $('alert4').innerHTML = `
+      <div class="alert warn">
+        <strong>You already have a request (${swapText(info.old_current_tut, info.old_desired_tut)}).</strong><br>
         Submitting this one will remove your previous request.
         <div class="button-group" style="margin-top:14px;">
-          <button type="button" class="btn-secondary" onclick="window.cancelReplace()">Cancel</button>
-          <button type="button" class="btn-primary" onclick="window.confirmReplace()">Replace</button>
+          <button type="button" class="btn-secondary" id="replaceNo">Keep old one</button>
+          <button type="button" class="btn-primary" id="replaceYes">Replace</button>
         </div>
       </div>
     `;
+    $('replaceNo').addEventListener('click', clearAlerts);
+    $('replaceYes').addEventListener('click', () => submitRequest(true));
   }
 
-  function cancelReplace() {
-    pendingReplace = null;
-    clearAlerts();
-  }
+  function showResults(data, email) {
+    hide('formSection');
+    show('resultsSection');
 
-  async function confirmReplace() {
-    if (!pendingReplace) return;
-    const { id, email } = pendingReplace;
-    pendingReplace = null;
-    await submitRequest(email, id);
-  }
-
-  async function submitRequest(email, replaceId) {
-    clearAlerts();
-    try {
-      const row = {
-        student_id: formData.studentId,
-        email: email,
-        major: formData.major,
-        current_tut: formData.currentTut,
-        desired_tut: formData.desiredTut,
-        german_level: formData.germanLevel,
-        english_level: formData.englishLevel,
-        status: 'waiting',
-        created_at: new Date().toISOString(),
-        matched_at: null
-      };
-
-      let result;
-      if (replaceId) {
-        result = await supabase
-          .from('submissions')
-          .update(row)
-          .eq('id', replaceId)
-          .eq('status', 'waiting')
-          .select();
-      } else {
-        result = await supabase.from('submissions').insert(row).select();
-      }
-
-      if (result.error) throw result.error;
-      if (!result.data || result.data.length === 0) {
-        showAlert(4, 'Your previous request was just matched, so it could not be replaced. Use "Check your status" on the home page.');
-        return;
-      }
-
-      const newSubmission = result.data[0];
-      currentSubmissionId = newSubmission.id;
-
-      const match = await checkForMatch(newSubmission, email);
-      showResults(newSubmission, match, email);
-    } catch (err) {
-      console.error('Submit error:', err);
-      showAlert(4, err.message || 'Error submitting. Please try again.');
-    }
-  }
-  // ===== HELPER: parse comma-separated tutorial list into array =====
-  function parseTutList(str) {
-    return str.split(',').map(t => t.trim()).filter(t => t.length > 0);
-  }
-
-    // ===== MATCHING LOGIC =====
-  // Matching runs inside the database, one request at a time, so two
-  // simultaneous submissions can never be matched to the same person.
-  async function checkForMatch(newSubmission, email) {
-    const { data, error } = await supabase.rpc('match_submission', {
-      p_submission_id: newSubmission.id
-    });
-    if (error) throw error;
-    if (!data || !data.matched) return null;
-
-    // Only the request that actually created the match emails the partner
-    if (data.newly_matched) {
-      try {
-        await fetch('https://pyegfqoxnofszjbpcyil.functions.supabase.co/notify-match', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + SUPABASE_KEY
-          },
-          body: JSON.stringify({
-            to: data.partner_email,
-            yourTut: data.partner_current_tut,
-            partnerTut: newSubmission.current_tut,
-            coordinatorNeeded: data.coordinator_needed
-          })
-        });
-      } catch (emailErr) {
-        console.error('Notification email failed (match still succeeded):', emailErr);
-      }
-    }
-
-    return {
-      match: true,
-      partner: { current_tut: data.partner_current_tut, student_id: data.partner_student_id },
-      partnerEmail: data.partner_email,
-      coordinator: data.coordinator_needed
-    };
-  }
-
-  function showResults(submission, matchResult, email) {
-    document.getElementById('formSection').classList.add('hidden');
-    document.getElementById('resultsSection').classList.remove('hidden');
-
-    const resultsDiv = document.getElementById('matchResults');
-
-    if (matchResult && matchResult.match) {
-      resultsDiv.innerHTML = `
+    if (data.status === 'matched') {
+      $('matchResults').innerHTML = `
         <div class="match-card">
           <div class="match-header">✓ MATCHED!</div>
-          <div class="match-info">
-            <strong>Your swap:</strong> Tut ${formData.currentTut} → Tut ${matchResult.partner.current_tut}<br>
-            <strong>Partner swap:</strong> Tut ${matchResult.partner.current_tut} → Tut ${formData.currentTut}<br>
-            <strong>Partner ID:</strong> ${matchResult.partner.student_id}
-          </div>
-          ${matchResult.coordinator ? `
-            <div class="coordinator-note">
-              <strong>⚠️ Coordinator Approval Needed</strong><br>
-              You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
-            </div>
-          ` : ''}
-          <button class="portal-button" onclick="window.open('${GUC_PORTAL_URL}', '_blank'); return false;">
-            Go to GUC Portal
-          </button>
-          <p style="font-size: 12px; color: var(--text-soft); margin-top: 12px; text-align: center;">
-            Partner's email: <strong>${matchResult.partnerEmail}</strong>
-          </p>
+          ${partnerBlock(data)}
         </div>
+        <p class="hint" style="text-align:center;">Changed your mind? Use "Already submitted? Check your status" on the home page to cancel.</p>
       `;
     } else {
-      resultsDiv.innerHTML = `
+      $('matchResults').innerHTML = `
         <div class="empty-state">
           <p style="font-size: 15px; margin-bottom: 12px;"><strong>You're in the queue!</strong></p>
-                  <p>No match yet. We'll email you at <strong>${email}</strong> as soon as one is found (check your junk folder too). You can also check back anytime using "Already submitted? Check your status" on the home page.</p>
+          <p>No match yet. We'll email you at <strong>${esc(email)}</strong> as soon as one is found (check your junk folder too). You can also check back anytime using "Already submitted? Check your status" on the home page, where you can also cancel your request.</p>
         </div>
       `;
     }
-
     window.scrollTo(0, 0);
   }
 
   function resetForm() {
-    document.getElementById('formSection').classList.remove('hidden');
-    document.getElementById('resultsSection').classList.add('hidden');
-    document.getElementById('studentId').value = '';
-    document.getElementById('major').value = '';
-    document.getElementById('currentTut').value = '';
-    document.getElementById('desiredTut').value = '';
-    document.getElementById('germanLevel').value = '';
-    document.getElementById('englishLevel').value = '';
-    document.getElementById('email').value = '';
+    show('formSection');
+    hide('resultsSection');
+    hide('statusCheckPage');
+    ['studentId', 'major', 'currentTut', 'desiredTut', 'germanLevel', 'englishLevel',
+     'email', 'emailConfirm', 'whatsapp'].forEach(id => { $(id).value = ''; });
     formData = {};
-    currentSubmissionId = null;
+    clearAlerts();
     goToStep(1);
   }
+
   // ===== STATUS CHECK =====
   function showStatusCheck() {
-    document.getElementById('formSection').classList.add('hidden');
-    document.getElementById('statusCheckPage').classList.remove('hidden');
-    document.getElementById('statusCheckId').value = '';
-    document.getElementById('statusCheckResult').innerHTML = '';
+    hide('formSection');
+    show('statusCheckPage');
+    $('statusCheckId').value = '';
+    $('statusCheckEmail').value = '';
+    $('statusCheckResult').innerHTML = '';
+    statusCtx = null;
   }
 
   function hideStatusCheck() {
-    document.getElementById('statusCheckPage').classList.add('hidden');
-    document.getElementById('formSection').classList.remove('hidden');
+    hide('statusCheckPage');
+    show('formSection');
   }
 
+  $('statusForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    checkMyStatus();
+  });
+
   async function checkMyStatus() {
-    const resultDiv = document.getElementById('statusCheckResult');
-    const id = document.getElementById('statusCheckId').value.trim();
-    if (!id) {
-      resultDiv.innerHTML = '<div class="alert error">Please enter your student ID.</div>';
+    const resultDiv = $('statusCheckResult');
+    const id = $('statusCheckId').value.trim();
+    const email = $('statusCheckEmail').value.trim().toLowerCase();
+    if (!id || !email) {
+      resultDiv.innerHTML = '<div class="alert error">Please enter your student ID and GUC email.</div>';
       return;
     }
     resultDiv.innerHTML = '<div style="text-align:center;"><span class="loading-spinner"></span> Checking...</div>';
 
     try {
-      const { data: mySubs, error: subErr } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('student_id', id)
-        .in('status', ['waiting', 'matched'])
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const { data, error } = await supabase.rpc('check_status', { p_student_id: id, p_email: email });
+      if (error) throw error;
 
-      if (subErr) throw subErr;
-      if (!mySubs || mySubs.length === 0) {
-        resultDiv.innerHTML = '<div class="alert error">No active request found for that ID.</div>';
+      if (!data || !data.found) {
+        statusCtx = null;
+        resultDiv.innerHTML = '<div class="alert error">No active request found for that ID and email. Check that both match what you submitted.</div>';
         return;
       }
+      statusCtx = { id, email };
 
-      const mySub = mySubs[0];
+      const cancelBtn = '<div class="button-group"><button type="button" class="btn-danger" id="cancelBtn">Cancel my request</button></div>';
+      const myWa = data.whatsapp
+        ? `<p class="hint" style="text-align:center;">Your WhatsApp username shown to your partner: <strong>${esc(data.whatsapp)}</strong></p>`
+        : '';
 
-      if (mySub.status === 'waiting') {
+      if (data.status === 'waiting') {
         resultDiv.innerHTML = `
           <div class="empty-state">
             <p><strong>Still in the queue.</strong></p>
-                       <p>Tut ${mySub.current_tut} → Tut ${mySub.desired_tut.split(',').join(' or ')}</p>
-            <p style="margin-top:10px; font-size:13px;">We'll email you at <strong>${mySub.email}</strong> as soon as a match is found (check your junk folder too).</p>
+            <p>${swapText(data.my_tut, data.desired_tut)}</p>
+            <p style="margin-top:10px; font-size:13px;">We'll email you at <strong>${esc(data.email)}</strong> as soon as a match is found (check your junk folder too).</p>
           </div>
+          ${cancelBtn}
         `;
-        return;
-      }
-
-      const { data: matchRows, error: matchErr } = await supabase
-        .from('matches')
-        .select('*')
-        .or(`submission_a_id.eq.${mySub.id},submission_b_id.eq.${mySub.id}`)
-        .limit(1);
-
-      if (matchErr) throw matchErr;
-      if (!matchRows || matchRows.length === 0) {
-        resultDiv.innerHTML = '<div class="alert error">Matched, but match details could not be found.</div>';
-        return;
-      }
-
-      const matchRow = matchRows[0];
-      const partnerSubId = matchRow.submission_a_id === mySub.id ? matchRow.submission_b_id : matchRow.submission_a_id;
-
-      const { data: partnerSub, error: partnerErr } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('id', partnerSubId)
-        .single();
-
-      if (partnerErr) throw partnerErr;
-
-      const { data: contactRow, error: contactErr } = await supabase
-        .from('match_contacts')
-        .select('*')
-        .eq('match_id', matchRow.id)
-        .single();
-
-      if (contactErr) throw contactErr;
-
-      const partnerEmail = contactRow.student_a_id === mySub.student_id ? contactRow.student_b_email : contactRow.student_a_email;
-
-      resultDiv.innerHTML = `
-        <div class="match-card">
-          <div class="match-header">✓ MATCHED!</div>
-          <div class="match-info">
-            <strong>Your swap:</strong> Tut ${mySub.current_tut} → Tut ${partnerSub.current_tut}<br>
-            <strong>Partner ID:</strong> ${partnerSub.student_id}
+      } else if (data.details_missing) {
+        resultDiv.innerHTML = `<div class="alert error">Matched, but match details could not be found.</div>${cancelBtn}`;
+      } else {
+        resultDiv.innerHTML = `
+          <div class="match-card">
+            <div class="match-header">✓ MATCHED!</div>
+            ${partnerBlock(data)}
           </div>
-          ${matchRow.coordinator_needed ? `
-            <div class="coordinator-note">
-              <strong>⚠️ Coordinator Approval Needed</strong><br>
-              You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
-            </div>
-          ` : ''}
-          <p style="font-size:12px; color:var(--text-soft); margin-top:12px; text-align:center;">
-            Partner's email: <strong>${partnerEmail}</strong>
-          </p>
-        </div>
-      `;
+          ${myWa}
+          ${cancelBtn}
+        `;
+      }
+      $('cancelBtn').addEventListener('click', () => askCancel(data.status));
     } catch (err) {
       console.error('Status check error:', err);
-      resultDiv.innerHTML = `<div class="alert error">${err.message || 'Error checking status. Please try again.'}</div>`;
+      resultDiv.innerHTML = `<div class="alert error">${esc(err.message || 'Error checking status. Please try again.')}</div>`;
     }
   }
 
-  // ===== MAKE FUNCTIONS GLOBAL =====
-  window.goToStep = goToStep;
-  window.showStatusCheck = showStatusCheck;
-  window.hideStatusCheck = hideStatusCheck;
-  window.checkMyStatus = checkMyStatus;
-  window.resetForm = resetForm;
-  window.cancelReplace = cancelReplace;
-  window.confirmReplace = confirmReplace;
+  // ===== CANCEL =====
+  function askCancel(status) {
+    const extra = status === 'matched'
+      ? 'Your partner will be emailed and put back in the queue.'
+      : 'You will leave the queue.';
+    $('statusCheckResult').insertAdjacentHTML('beforeend', `
+      <div class="alert warn" id="cancelConfirm" style="margin-top:14px;">
+        <strong>Cancel your request?</strong><br>${extra} You can submit a new request afterwards.
+        <div class="button-group" style="margin-top:14px;">
+          <button type="button" class="btn-secondary" id="cancelNo">No, keep it</button>
+          <button type="button" class="btn-primary btn-danger-solid" id="cancelYes">Yes, cancel</button>
+        </div>
+      </div>
+    `);
+    $('cancelBtn').classList.add('hidden');
+    $('cancelNo').addEventListener('click', () => {
+      $('cancelConfirm').remove();
+      $('cancelBtn').classList.remove('hidden');
+    });
+    $('cancelYes').addEventListener('click', doCancel);
+  }
 
+  async function doCancel() {
+    if (!statusCtx) return;
+    const resultDiv = $('statusCheckResult');
+    $('cancelYes').disabled = true;
+    try {
+      const { data, error } = await supabase.rpc('cancel_request', {
+        p_student_id: statusCtx.id,
+        p_email: statusCtx.email
+      });
+      if (error) throw error;
+      statusCtx = null;
+      if (!data || !data.cancelled) {
+        resultDiv.innerHTML = '<div class="alert error">No active request found. It may already have been cancelled.</div>';
+        return;
+      }
+      await sendNotifications(data.notify);
+      resultDiv.innerHTML = '<div class="alert success">Your request has been cancelled. You can submit a new one anytime from the home page.</div>';
+    } catch (err) {
+      console.error('Cancel error:', err);
+      resultDiv.insertAdjacentHTML('beforeend', `<div class="alert error" style="margin-top:12px;">${esc(err.message || 'Could not cancel. Please try again.')}</div>`);
+      const b = $('cancelYes'); if (b) b.disabled = false;
+    }
+  }
 
-  // Init
+  // ===== WIRING =====
+  document.querySelectorAll('[data-go]').forEach(b =>
+    b.addEventListener('click', () => goToStep(Number(b.dataset.go))));
+  $('statusLink').addEventListener('click', (e) => { e.preventDefault(); showStatusCheck(); });
+  $('statusBackBtn').addEventListener('click', hideStatusCheck);
+  $('anotherBtn').addEventListener('click', resetForm);
+
   updateProgress();
 })();
 </script>
