@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TutMatching — GUC Tutorial Swap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #0066cc;
+    --primary-dark: #004fa3;
+    --primary-light: #e6f0ff;
+    --accent: #00a34f;
+    --accent-light: #e6f5f0;
+    --text: #1a1a1a;
+    --text-soft: #666;
+    --bg: #f5f5f5;
+    --bg-raised: #ffffff;
+    --border: #ddd;
+    --success: #00a34f;
+    --success-bg: #e6f5f0;
+    --error: #c41e3a;
+    --error-bg: #fee;
+    --radius: 8px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #4d94ff;
+      --primary-dark: #3d7fcc;
+      --primary-light: #1a3a5c;
+      --accent: #00d966;
+      --text: #ffffff;
+      --text-soft: #aaa;
+      --bg: #1a1a1a;
+      --bg-raised: #242424;
+      --border: #444;
+      --success: #00d966;
+      --success-bg: #1c3229;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, Segoe UI, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+    margin-top: 20px;
+  }
+
+  .logo {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--text-soft);
+  }
+
+  .card {
+    background: var(--bg-raised);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+  }
+
+  .step-number {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 20px;
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+
+  .button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  button {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-dark);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+  }
+
+  .btn-secondary:hover {
+    background: var(--primary-light);
+  }
+
+  .alert {
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  .alert.error {
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid #f5c6c6;
+  }
+
+  .alert.success {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success);
+  }
+
+  .match-card {
+    background: var(--success-bg);
+    border: 2px solid var(--success);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .match-header {
+    font-weight: 700;
+    color: var(--success);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+
+  .match-info {
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .portal-button {
+    background: #ffcc00;
+    color: #000;
+    padding: 14px 16px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 12px;
+  }
+
+  .portal-button:hover {
+    background: #e6b800;
+  }
+
+  .coordinator-note {
+    background: #fff3cd;
+    border-left: 4px solid #cc9a00;
+    padding: 12px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #5c4400;
+    margin-top: 12px;
+  }
+
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-soft);
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--primary);
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-soft);
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .hint { font-size: 12px; color: var(--text-soft); margin-top: 6px; }
+
+  .alert.warn {
+    background: #fff3cd;
+    color: #5c4400;
+    border: 1px solid #cc9a00;
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--error);
+    border: 1.5px solid var(--error);
+  }
+
+  .btn-danger:hover { background: var(--error-bg); }
+
+  .btn-danger-solid { background: var(--error); color: white; }
+
+  .privacy-note {
+    background: var(--primary-light);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text);
+    margin-top: 10px;
+  }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="logo">TutMatching</div>
+    <div class="tagline">GUC Tutorial Swap Matching</div>
+  </div>
+
+  <!-- FORM SECTION -->
+  <div id="formSection">
+    <div class="card">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div id="step1" class="step">
+        <div class="step-number">Step 1 of 4</div>
+        <h2>What's your Student ID?</h2>
+        <form id="step1Form">
+          <div class="field">
+            <label for="studentId">Student ID (e.g. 55-1234)</label>
+            <input id="studentId" type="text" placeholder="55-1234" required>
+          </div>
+          <div class="button-group">
+            <button type="submit" class="btn-primary">Continue</button>
+          </div>
+        </form>
+        <div id="alert1"></div>
+
+        <div style="text-align:center; margin-top:16px;">
+          <a href="#" id="statusLink" style="font-size:13px; color:var(--primary);">Already submitted? Check your status</a>
+        </div>
+      </div>
+
+      <div id="step2" class="step hidden">
+        <div class="step-number">Step 2 of 4</div>
+        <h2>Your Course Details</h2>
+        <form id="step2Form">
+          <div class="field">
+            <label for="major">Major</label>
+            <select id="major" required>
+              <option value="">Select your major</option>
+              <option>Business Informatics</option>
+              <option>Mechatronics Engineering</option>
+              <option>Digital Media Engineering and Technology</option>
+              <option>Design and Production Engineering</option>
+              <option>Architecture Engineering</option>
+              <option>Civil Engineering</option>
+              <option>Materials Engineering</option>
+              <option>Computer Science and Engineering</option>
+              <option>Law and Legal Studies</option>
+              <option>Networks</option>
+              <option>Communications</option>
+              <option>Electronics</option>
+              <option>PharmD</option>
+              <option>PharmD-Clinical Pharmacy</option>
+              <option>Biotechnology</option>
+              <option>General Management</option>
+              <option>Technology-based Management</option>
+              <option>Graphic Design</option>
+              <option>Media Design</option>
+              <option>Product Design</option>
+              <option>Dentistry</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="currentTut">Your Tutorial (numbers only)</label>
+            <input id="currentTut" type="text" placeholder="e.g. 4" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="desiredTut">Desired Tutorial(s)</label>
+            <input id="desiredTut" type="text" placeholder="e.g. 7 or 3,4,5" inputmode="numeric" required>
+            <div class="hint">
+              Flexible? List every tutorial you'd accept, separated by commas (e.g. 3,4,5). One number if you only want one specific tutorial.
+            </div>
+          </div>
+          <div class="button-group">
+            <button type="button" class="btn-secondary" data-go="1">Back</button>
+            <button type="submit" class="btn-primary">Continue</button>
+          </div>
+        </form>
+        <div id="alert2"></div>
+      </div>
+
+      <div id="step3" class="step hidden">
+        <div class="step-number">Step 3 of 4</div>
+        <h2>Language Levels</h2>
+        <p style="font-size: 13px; color: var(--text-soft); margin-bottom: 20px;">Leave blank if you've already completed these courses.</p>
+        <form id="step3Form">
+          <div class="field">
+            <label for="germanLevel">German Level</label>
+            <select id="germanLevel">
+              <option value="">Not applicable / Completed</option>
+              <option>1</option>
+              <option>2</option>
+              <option>3</option>
+              <option>4</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="englishLevel">English Level</label>
+            <select id="englishLevel">
+              <option value="">Not applicable / Completed</option>
+              <option>AS</option>
+              <option>SM</option>
+              <option>CPS</option>
+              <option>RPW</option>
+            </select>
+          </div>
+          <div class="button-group">
+            <button type="button" class="btn-secondary" data-go="2">Back</button>
+            <button type="submit" class="btn-primary">Continue</button>
+          </div>
+        </form>
+        <div id="alert3"></div>
+      </div>
+
+      <div id="step4" class="step hidden">
+        <div class="step-number">Step 4 of 4</div>
+        <h2>Confirm & Submit</h2>
+        <div style="background: var(--bg); padding: 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px;">
+          <div style="margin-bottom: 12px;"><strong>ID:</strong> <span id="confirmId"></span></div>
+          <div style="margin-bottom: 12px;"><strong>Major:</strong> <span id="confirmMajor"></span></div>
+          <div style="margin-bottom: 12px;"><strong>Swap:</strong> <span id="confirmSwap"></span></div>
+          <div id="confirmLevels"></div>
+        </div>
+        <form id="step4Form" autocomplete="off">
+          <div class="field">
+            <label for="email">GUC Email *</label>
+            <input id="email" type="email" placeholder="your.name@student.guc.edu.eg" required>
+            <div class="hint">
+              Must be your GUC student email. We'll email you here when a match is found, and you'll need it with your ID to check or cancel your request.
+            </div>
+          </div>
+          <div class="field">
+            <label for="emailConfirm">Confirm GUC Email *</label>
+            <input id="emailConfirm" type="email" placeholder="Type it again" required>
+          </div>
+          <div class="field">
+            <label for="whatsapp">WhatsApp username (optional)</label>
+            <input id="whatsapp" type="text" placeholder="e.g. your.username" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <div class="privacy-note">
+              If you add one, your WhatsApp username will be shown to your matched partner (together with your email) as an easier way to connect. Leave it blank to be contacted by email only.
+            </div>
+          </div>
+          <div class="button-group">
+            <button type="button" class="btn-secondary" data-go="3">Back</button>
+            <button type="submit" class="btn-primary" id="submitBtn">Submit Request</button>
+          </div>
+        </form>
+        <div id="alert4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS CHECK -->
+  <div id="statusCheckPage" class="hidden">
+    <div class="card">
+      <div class="step-number">Check Status</div>
+      <h2>Already Submitted?</h2>
+      <form id="statusForm" autocomplete="off">
+        <div class="field">
+          <label for="statusCheckId">Student ID</label>
+          <input id="statusCheckId" type="text" placeholder="55-1234" required>
+        </div>
+        <div class="field">
+          <label for="statusCheckEmail">GUC Email</label>
+          <input id="statusCheckEmail" type="email" placeholder="your.name@student.guc.edu.eg" required>
+          <div class="hint">Use the same ID and email you submitted with.</div>
+        </div>
+        <div class="button-group">
+          <button type="button" class="btn-secondary" id="statusBackBtn">Back</button>
+          <button type="submit" class="btn-primary" id="statusBtn">Check Status</button>
+        </div>
+      </form>
+      <div id="statusCheckResult" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS SECTION -->
+  <div id="resultsSection" class="hidden">
+    <div class="card">
+      <div style="text-align: center; margin-bottom: 28px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">✓</div>
+        <h2 style="margin: 0;">Request Submitted!</h2>
+      </div>
+
+      <div id="matchResults"></div>
+
+      <div style="text-align: center; margin-top: 28px;">
+        <button class="btn-primary" id="anotherBtn" style="width: 100%;">Back to Home</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Your details are stored privately. Your email (and WhatsApp username, if you add one) is only shown to your matched partner.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ===== CONFIG =====
+  const SUPABASE_URL = 'https://pyegfqoxnofszjbpcyil.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZWdmcW94bm9mc3pqYnBjeWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NjEzOTgsImV4cCI6MjEwNTMzNzM5OH0.4pO-72hxkb2zMyDK3rRmNYB4wen-ibEq6B7X9RBKW38';
+  const NOTIFY_URL = 'https://pyegfqoxnofszjbpcyil.functions.supabase.co/notify-match';
+  const GUC_PORTAL_URL = 'https://student.guc.edu.eg/';
+  // Only emails ending in this domain are accepted
+  const GUC_EMAIL_DOMAIN = '@student.guc.edu.eg';
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let currentStep = 1;
+  let formData = {};
+  // ID + email of the request being looked at on the status page
+  let statusCtx = null;
+
+  // ===== UTILITIES =====
+  const $ = (id) => document.getElementById(id);
+
+  // Escape anything that came from a user before putting it into innerHTML
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function updateProgress() {
+    $('progressFill').style.width = (currentStep * 25) + '%';
+  }
+
+  function goToStep(step) {
+    currentStep = step;
+    document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
+    $('step' + step).classList.remove('hidden');
+    updateProgress();
+    window.scrollTo(0, 0);
+  }
+
+  function showAlert(stepNum, msg, type = 'error') {
+    $('alert' + stepNum).innerHTML = `<div class="alert ${type}">${esc(msg)}</div>`;
+  }
+
+  function clearAlerts() {
+    ['alert1', 'alert2', 'alert3', 'alert4'].forEach(id => { $(id).innerHTML = ''; });
+  }
+
+  function show(id) { $(id).classList.remove('hidden'); }
+  function hide(id) { $(id).classList.add('hidden'); }
+
+  function swapText(cur, desiredCsv) {
+    return `Tut ${esc(cur)} → Tut ${esc(String(desiredCsv).split(',').join(' or '))}`;
+  }
+
+  // Emails are sent by the server from its own queue; the page only passes ids.
+  async function sendNotifications(ids) {
+    if (!ids || !ids.length) return;
+    await Promise.allSettled(ids.map(id =>
+      fetch(NOTIFY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+        body: JSON.stringify({ notification_id: id })
+      }).catch(e => console.error('Notification email failed (the rest still succeeded):', e))
+    ));
+  }
+
+  function partnerBlock(d) {
+    const wa = d.partner_whatsapp
+      ? `<br><strong>Partner's WhatsApp:</strong> ${esc(d.partner_whatsapp)}`
+      : '';
+    return `
+      <div class="match-info">
+        <strong>Your swap:</strong> Tut ${esc(d.my_tut)} → Tut ${esc(d.partner_tut)}<br>
+        <strong>Partner swap:</strong> Tut ${esc(d.partner_tut)} → Tut ${esc(d.my_tut)}<br>
+        <strong>Partner ID:</strong> ${esc(d.partner_student_id)}<br>
+        <strong>Partner's email:</strong> ${esc(d.partner_email)}${wa}
+      </div>
+      ${d.coordinator_needed ? `
+        <div class="coordinator-note">
+          <strong>⚠️ Coordinator Approval Needed</strong><br>
+          You and your partner have different German or English levels. Both of you should contact the academic coordinator together to approve this swap.
+        </div>` : ''}
+      <a class="portal-button" href="${GUC_PORTAL_URL}" target="_blank" rel="noopener">Log in to your GUC Portal</a>
+    `;
+  }
+
+  // ===== STEP 1 =====
+  $('step1Form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    clearAlerts();
+    const id = $('studentId').value.trim();
+    if (!/^\d+-\d+$/.test(id)) {
+      showAlert(1, 'Invalid ID. Use the format 55-1234.');
+      return;
+    }
+    formData.studentId = id;
+    goToStep(2);
+  });
+
+  // ===== STEP 2 =====
+  $('currentTut').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^\d]/g, '');
+  });
+  $('desiredTut').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^\d,]/g, '');
+  });
+
+  $('step2Form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    clearAlerts();
+    const major = $('major').value;
+    const currentTut = $('currentTut').value.trim();
+    const desiredTutRaw = $('desiredTut').value.trim();
+
+    if (!major || !currentTut || !desiredTutRaw) {
+      showAlert(2, 'Please fill in all fields.');
+      return;
+    }
+
+    const desiredList = [...new Set(
+      desiredTutRaw.split(',').map(t => t.trim()).filter(t => t.length > 0)
+    )];
+
+    if (desiredList.length === 0) {
+      showAlert(2, 'Please enter at least one desired tutorial.');
+      return;
+    }
+    if (desiredList.length > 10) {
+      showAlert(2, 'Please list 10 or fewer tutorials.');
+      return;
+    }
+    if (desiredList.includes(currentTut)) {
+      showAlert(2, 'Your desired list can\'t include your current tutorial.');
+      return;
+    }
+
+    formData.major = major;
+    formData.currentTut = currentTut;
+    formData.desiredTut = desiredList.join(',');
+    goToStep(3);
+  });
+
+  // ===== STEP 3 =====
+  $('step3Form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    formData.germanLevel = $('germanLevel').value || null;
+    formData.englishLevel = $('englishLevel').value || null;
+
+    $('confirmId').textContent = formData.studentId;
+    $('confirmMajor').textContent = formData.major;
+    $('confirmSwap').textContent = formData.currentTut + ' → ' + formData.desiredTut.split(',').join(' or ');
+
+    let levels = '';
+    if (formData.germanLevel) levels += `<div><strong>German:</strong> ${esc(formData.germanLevel)}</div>`;
+    if (formData.englishLevel) levels += `<div><strong>English:</strong> ${esc(formData.englishLevel)}</div>`;
+    $('confirmLevels').innerHTML = levels;
+
+    goToStep(4);
+  });
+
+  // ===== STEP 4 =====
+  // Typing the email twice is the point, so pasting into the second box is blocked
+  $('emailConfirm').addEventListener('paste', (e) => e.preventDefault());
+
+  $('step4Form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitRequest(false);
+  });
+
+  async function submitRequest(replace) {
+    clearAlerts();
+
+    const email = $('email').value.trim().toLowerCase();
+    const email2 = $('emailConfirm').value.trim().toLowerCase();
+    const whatsapp = $('whatsapp').value.trim().replace(/^@+/, '');
+
+    if (!email) { showAlert(4, 'Please enter your email.'); return; }
+    if (!email.endsWith(GUC_EMAIL_DOMAIN)) {
+      showAlert(4, `Please use your GUC email address (ends with ${GUC_EMAIL_DOMAIN}).`);
+      return;
+    }
+    if (email !== email2) {
+      showAlert(4, 'The two email addresses don\'t match. Please check them.');
+      return;
+    }
+    if (whatsapp && !/^[A-Za-z0-9._-]{1,40}$/.test(whatsapp)) {
+      showAlert(4, 'WhatsApp username can only contain letters, numbers, dots, underscores and dashes.');
+      return;
+    }
+
+    const btn = $('submitBtn');
+    btn.disabled = true;
+    try {
+      const { data, error } = await supabase.rpc('submit_request', {
+        p_student_id: formData.studentId,
+        p_email: email,
+        p_major: formData.major,
+        p_current_tut: formData.currentTut,
+        p_desired_tut: formData.desiredTut,
+        p_german_level: formData.germanLevel,
+        p_english_level: formData.englishLevel,
+        p_whatsapp: whatsapp || null,
+        p_replace: replace
+      });
+      if (error) throw error;
+
+      switch (data.status) {
+        case 'invalid':
+          showAlert(4, data.message || 'Please check your details.');
+          return;
+        case 'rate_limited':
+          showAlert(4, 'Too many attempts. Please wait an hour and try again.');
+          return;
+        case 'already_matched':
+          showAlert(4, 'You have already been matched. Use "Already submitted? Check your status" on the home page. You can cancel your match from there.');
+          return;
+        case 'email_taken':
+          showAlert(4, 'This email already has a request under a different student ID.');
+          return;
+        case 'id_taken':
+          showAlert(4, 'This student ID already has an active request under a different email.');
+          return;
+        case 'needs_replace':
+          showReplaceWarning(data);
+          return;
+        case 'matched':
+        case 'queued':
+          await sendNotifications(data.notify);
+          showResults(data, email);
+          return;
+        default:
+          throw new Error('Unexpected response. Please try again.');
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      showAlert(4, err.message || 'Error submitting. Please try again.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function showReplaceWarning(info) {
+    $('alert4').innerHTML = `
+      <div class="alert warn">
+        <strong>You already have a request (${swapText(info.old_current_tut, info.old_desired_tut)}).</strong><br>
+        Submitting this one will remove your previous request.
+        <div class="button-group" style="margin-top:14px;">
+          <button type="button" class="btn-secondary" id="replaceNo">Keep old one</button>
+          <button type="button" class="btn-primary" id="replaceYes">Replace</button>
+        </div>
+      </div>
+    `;
+    $('replaceNo').addEventListener('click', clearAlerts);
+    $('replaceYes').addEventListener('click', () => submitRequest(true));
+  }
+
+  function showResults(data, email) {
+    hide('formSection');
+    show('resultsSection');
+
+    if (data.status === 'matched') {
+      $('matchResults').innerHTML = `
+        <div class="match-card">
+          <div class="match-header">✓ MATCHED!</div>
+          ${partnerBlock(data)}
+        </div>
+        <p class="hint" style="text-align:center;">Changed your mind? Use "Already submitted? Check your status" on the home page to cancel.</p>
+      `;
+    } else {
+      $('matchResults').innerHTML = `
+        <div class="empty-state">
+          <p style="font-size: 15px; margin-bottom: 12px;"><strong>You're in the queue!</strong></p>
+          <p>No match yet. We'll email you at <strong>${esc(email)}</strong> as soon as one is found (check your junk folder too). You can also check back anytime using "Already submitted? Check your status" on the home page, where you can also cancel your request.</p>
+        </div>
+      `;
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function resetForm() {
+    show('formSection');
+    hide('resultsSection');
+    hide('statusCheckPage');
+    ['studentId', 'major', 'currentTut', 'desiredTut', 'germanLevel', 'englishLevel',
+     'email', 'emailConfirm', 'whatsapp'].forEach(id => { $(id).value = ''; });
+    formData = {};
+    clearAlerts();
+    goToStep(1);
+  }
+
+  // ===== STATUS CHECK =====
+  function showStatusCheck() {
+    hide('formSection');
+    show('statusCheckPage');
+    $('statusCheckId').value = '';
+    $('statusCheckEmail').value = '';
+    $('statusCheckResult').innerHTML = '';
+    statusCtx = null;
+  }
+
+  function hideStatusCheck() {
+    hide('statusCheckPage');
+    show('formSection');
+  }
+
+  $('statusForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    checkMyStatus();
+  });
+
+  async function checkMyStatus() {
+    const resultDiv = $('statusCheckResult');
+    const id = $('statusCheckId').value.trim();
+    const email = $('statusCheckEmail').value.trim().toLowerCase();
+    if (!id || !email) {
+      resultDiv.innerHTML = '<div class="alert error">Please enter your student ID and GUC email.</div>';
+      return;
+    }
+    resultDiv.innerHTML = '<div style="text-align:center;"><span class="loading-spinner"></span> Checking...</div>';
+
+    try {
+      const { data, error } = await supabase.rpc('check_status', { p_student_id: id, p_email: email });
+      if (error) throw error;
+
+      if (data && data.rate_limited) {
+        statusCtx = null;
+        resultDiv.innerHTML = '<div class="alert error">Too many checks. Please wait an hour and try again.</div>';
+        return;
+      }
+      if (!data || !data.found) {
+        statusCtx = null;
+        resultDiv.innerHTML = '<div class="alert error">No active request found for that ID and email. Check that both match what you submitted.</div>';
+        return;
+      }
+      statusCtx = { id, email, data };
+
+      const cancelBtn = '<div class="button-group">' + (data.status === 'waiting' ? '<button type="button" class="btn-secondary" id="editBtn">Edit my request</button>' : '') + '<button type="button" class="btn-danger" id="cancelBtn">Cancel my request</button></div><div id="editBox"></div>';
+      const myWa = data.whatsapp
+        ? `<p class="hint" style="text-align:center;">Your WhatsApp username shown to your partner: <strong>${esc(data.whatsapp)}</strong></p>`
+        : '';
+
+      if (data.status === 'waiting') {
+        resultDiv.innerHTML = `
+          <div class="empty-state">
+            <p><strong>Still in the queue.</strong></p>
+            <p>${swapText(data.my_tut, data.desired_tut)}</p>
+            <p style="margin-top:10px; font-size:13px;">We'll email you at <strong>${esc(data.email)}</strong> as soon as a match is found (check your junk folder too).</p>
+          </div>
+          ${cancelBtn}
+        `;
+      } else if (data.details_missing) {
+        resultDiv.innerHTML = `<div class="alert error">Matched, but match details could not be found.</div>${cancelBtn}`;
+      } else {
+        resultDiv.innerHTML = `
+          <div class="match-card">
+            <div class="match-header">✓ MATCHED!</div>
+            ${partnerBlock(data)}
+          </div>
+          ${myWa}
+          ${cancelBtn}
+        `;
+      }
+      $('cancelBtn').addEventListener('click', () => askCancel(data.status));
+      if ($('editBtn')) $('editBtn').addEventListener('click', () => askEdit(data));
+    } catch (err) {
+      console.error('Status check error:', err);
+      resultDiv.innerHTML = `<div class="alert error">${esc(err.message || 'Error checking status. Please try again.')}</div>`;
+    }
+  }
+
+  // ===== CANCEL =====
+  function askCancel(status) {
+    const extra = status === 'matched'
+      ? 'Your partner will be emailed and put back in the queue.'
+      : 'You will leave the queue.';
+    $('statusCheckResult').insertAdjacentHTML('beforeend', `
+      <div class="alert warn" id="cancelConfirm" style="margin-top:14px;">
+        <strong>Cancel your request?</strong><br>${extra} You can submit a new request afterwards.
+        <div class="button-group" style="margin-top:14px;">
+          <button type="button" class="btn-secondary" id="cancelNo">No, keep it</button>
+          <button type="button" class="btn-primary btn-danger-solid" id="cancelYes">Yes, cancel</button>
+        </div>
+      </div>
+    `);
+    $('cancelBtn').classList.add('hidden');
+    $('cancelNo').addEventListener('click', () => {
+      $('cancelConfirm').remove();
+      $('cancelBtn').classList.remove('hidden');
+    });
+    $('cancelYes').addEventListener('click', doCancel);
+  }
+
+  async function doCancel() {
+    if (!statusCtx) return;
+    const resultDiv = $('statusCheckResult');
+    $('cancelYes').disabled = true;
+    try {
+      const { data, error } = await supabase.rpc('cancel_request', {
+        p_student_id: statusCtx.id,
+        p_email: statusCtx.email
+      });
+      if (error) throw error;
+      if (data && data.rate_limited) {
+        resultDiv.insertAdjacentHTML('beforeend', '<div class="alert error" style="margin-top:12px;">Too many attempts. Please wait an hour and try again.</div>');
+        const b = $('cancelYes'); if (b) b.disabled = false;
+        return;
+      }
+      statusCtx = null;
+      if (!data || !data.cancelled) {
+        resultDiv.innerHTML = '<div class="alert error">No active request found. It may already have been cancelled.</div>';
+        return;
+      }
+      await sendNotifications(data.notify);
+      resultDiv.innerHTML = '<div class="alert success">Your request has been cancelled. You can submit a new one anytime from the home page.</div>';
+    } catch (err) {
+      console.error('Cancel error:', err);
+      resultDiv.insertAdjacentHTML('beforeend', `<div class="alert error" style="margin-top:12px;">${esc(err.message || 'Could not cancel. Please try again.')}</div>`);
+      const b = $('cancelYes'); if (b) b.disabled = false;
+    }
+  }
+
+  // ===== EDIT =====
+  // Waiting request: everything can be edited. Matched request: only the WhatsApp username.
+  function askEdit(d) {
+    const matched = d.status === 'matched';
+    $('editBtn').classList.add('hidden');
+    $('cancelBtn').classList.add('hidden');
+    $('editBox').innerHTML = `
+      <form id="editForm" autocomplete="off" style="margin-top:18px;">
+        <h3 style="font-size:16px; margin:0 0 12px;">Edit your request</h3>
+        ${matched ? `<div class="alert warn">You're matched, so you can only change your WhatsApp username. To change your tutorials, cancel your match and submit a new request.</div>` : `
+        <div class="field"><label for="editMajor">Major</label><select id="editMajor" required></select></div>
+        <div class="field"><label for="editCur">Your Tutorial (numbers only)</label><input id="editCur" type="text" inputmode="numeric" required></div>
+        <div class="field"><label for="editDes">Desired Tutorial(s)</label><input id="editDes" type="text" inputmode="numeric" required>
+          <div class="hint">Changing your major or tutorials moves you to the back of the queue.</div></div>
+        <div class="field"><label for="editDe">German Level</label><select id="editDe"><option value="">Not applicable / Completed</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+        <div class="field"><label for="editEn">English Level</label><select id="editEn"><option value="">Not applicable / Completed</option><option>AS</option><option>SM</option><option>CPS</option><option>RPW</option></select></div>`}
+        <div class="field"><label for="editWa">WhatsApp username (optional)</label><input id="editWa" type="text" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <div class="hint">Shown to your matched partner, with your email.</div></div>
+        <div class="button-group">
+          <button type="button" class="btn-secondary" id="editCancel">Back</button>
+          <button type="submit" class="btn-primary" id="editSave">Save</button>
+        </div>
+        <div id="editAlert" style="margin-top:12px;"></div>
+      </form>`;
+    // values go in as plain text, never as HTML
+    $('editWa').value = d.whatsapp || '';
+    if (!matched) {
+      const sel = $('editMajor');
+      document.querySelectorAll('#major option').forEach(o => sel.appendChild(o.cloneNode(true)));
+      sel.value = d.major || '';
+      $('editCur').value = d.my_tut || '';
+      $('editDes').value = d.desired_tut || '';
+      $('editDe').value = d.german_level || '';
+      $('editEn').value = d.english_level || '';
+      $('editCur').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, ''); });
+      $('editDes').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d,]/g, ''); });
+    }
+    $('editCancel').addEventListener('click', () => {
+      $('editBox').innerHTML = '';
+      $('editBtn').classList.remove('hidden');
+      $('cancelBtn').classList.remove('hidden');
+    });
+    $('editForm').addEventListener('submit', (e) => { e.preventDefault(); saveEdit(d); });
+  }
+
+  async function saveEdit(d) {
+    if (!statusCtx) return;
+    const matched = d.status === 'matched';
+    const alertBox = $('editAlert');
+    const wa = $('editWa').value.trim().replace(/^@+/, '');
+    if (wa && !/^[A-Za-z0-9._-]{1,40}$/.test(wa)) {
+      alertBox.innerHTML = '<div class="alert error">WhatsApp username can only contain letters, numbers, dots, underscores and dashes.</div>';
+      return;
+    }
+    // A matched request keeps every other field exactly as it is
+    const v = matched ? {
+      major: d.major, cur: d.my_tut, des: d.desired_tut, de: d.german_level, en: d.english_level
+    } : {
+      major: $('editMajor').value, cur: $('editCur').value.trim(), des: $('editDes').value.trim(),
+      de: $('editDe').value || null, en: $('editEn').value || null
+    };
+    if (!matched) {
+      const list = [...new Set(v.des.split(',').map(t => t.trim()).filter(Boolean))];
+      if (!v.major || !v.cur || list.length === 0) {
+        alertBox.innerHTML = '<div class="alert error">Please fill in all fields.</div>';
+        return;
+      }
+      if (list.length > 10) { alertBox.innerHTML = '<div class="alert error">Please list 10 or fewer tutorials.</div>'; return; }
+      if (list.includes(v.cur)) { alertBox.innerHTML = '<div class="alert error">Your desired list can\'t include your current tutorial.</div>'; return; }
+      v.des = list.join(',');
+    }
+
+    $('editSave').disabled = true;
+    try {
+      const { data, error } = await supabase.rpc('edit_request', {
+        p_student_id: statusCtx.id,
+        p_email: statusCtx.email,
+        p_major: v.major,
+        p_current_tut: v.cur,
+        p_desired_tut: v.des,
+        p_german_level: v.de,
+        p_english_level: v.en,
+        p_whatsapp: wa || null
+      });
+      if (error) throw error;
+
+      switch (data.status) {
+        case 'updated':
+        case 'queued':
+          await checkMyStatus();
+          $('statusCheckResult').insertAdjacentHTML('afterbegin',
+            `<div class="alert success">${data.status === 'queued' ? 'Saved. You are in the queue (at the back, because your tutorials changed).' : 'Saved.'}</div>`);
+          return;
+        case 'matched':
+          await sendNotifications(data.notify);
+          $('statusCheckResult').innerHTML = `
+            <div class="alert success">Saved. And we found you a match!</div>
+            <div class="match-card"><div class="match-header">✓ MATCHED!</div>${partnerBlock(data)}</div>
+            <p class="hint" style="text-align:center;">Use "Check Status" again to edit or cancel.</p>`;
+          statusCtx = null;
+          return;
+        case 'matched_locked':
+          alertBox.innerHTML = '<div class="alert error">You\'re matched, so this request can\'t be edited. Cancel your match and submit a new request instead.</div>';
+          break;
+        case 'rate_limited':
+          alertBox.innerHTML = '<div class="alert error">Too many attempts. Please wait an hour and try again.</div>';
+          break;
+        case 'invalid':
+          alertBox.innerHTML = `<div class="alert error">${esc(data.message || 'Please check your details.')}</div>`;
+          break;
+        case 'not_found':
+          alertBox.innerHTML = '<div class="alert error">Your request could not be found. It may have been cancelled.</div>';
+          break;
+        default:
+          throw new Error('Unexpected response. Please try again.');
+      }
+    } catch (err) {
+      console.error('Edit error:', err);
+      alertBox.innerHTML = `<div class="alert error">${esc(err.message || 'Could not save. Please try again.')}</div>`;
+    } finally {
+      const b = $('editSave'); if (b) b.disabled = false;
+    }
+  }
+
+  // ===== WIRING =====
+  document.querySelectorAll('[data-go]').forEach(b =>
+    b.addEventListener('click', () => goToStep(Number(b.dataset.go))));
+  $('statusLink').addEventListener('click', (e) => { e.preventDefault(); showStatusCheck(); });
+  $('statusBackBtn').addEventListener('click', hideStatusCheck);
+  $('anotherBtn').addEventListener('click', resetForm);
+
+  updateProgress();
+})();
+</script>
+</body>
+</html>
