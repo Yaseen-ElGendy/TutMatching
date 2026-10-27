@@ -738,6 +738,9 @@
         case 'invalid':
           showAlert(4, data.message || 'Please check your details.');
           return;
+        case 'rate_limited':
+          showAlert(4, 'Too many attempts. Please wait an hour and try again.');
+          return;
         case 'already_matched':
           showAlert(4, 'You have already been matched. Use "Already submitted? Check your status" on the home page. You can cancel your match from there.');
           return;
@@ -849,14 +852,19 @@
       const { data, error } = await supabase.rpc('check_status', { p_student_id: id, p_email: email });
       if (error) throw error;
 
+      if (data && data.rate_limited) {
+        statusCtx = null;
+        resultDiv.innerHTML = '<div class="alert error">Too many checks. Please wait an hour and try again.</div>';
+        return;
+      }
       if (!data || !data.found) {
         statusCtx = null;
         resultDiv.innerHTML = '<div class="alert error">No active request found for that ID and email. Check that both match what you submitted.</div>';
         return;
       }
-      statusCtx = { id, email };
+      statusCtx = { id, email, data };
 
-      const cancelBtn = '<div class="button-group"><button type="button" class="btn-danger" id="cancelBtn">Cancel my request</button></div>';
+      const cancelBtn = '<div class="button-group">' + (data.status === 'waiting' ? '<button type="button" class="btn-secondary" id="editBtn">Edit my request</button>' : '') + '<button type="button" class="btn-danger" id="cancelBtn">Cancel my request</button></div><div id="editBox"></div>';
       const myWa = data.whatsapp
         ? `<p class="hint" style="text-align:center;">Your WhatsApp username shown to your partner: <strong>${esc(data.whatsapp)}</strong></p>`
         : '';
@@ -883,6 +891,7 @@
         `;
       }
       $('cancelBtn').addEventListener('click', () => askCancel(data.status));
+      if ($('editBtn')) $('editBtn').addEventListener('click', () => askEdit(data));
     } catch (err) {
       console.error('Status check error:', err);
       resultDiv.innerHTML = `<div class="alert error">${esc(err.message || 'Error checking status. Please try again.')}</div>`;
@@ -921,6 +930,11 @@
         p_email: statusCtx.email
       });
       if (error) throw error;
+      if (data && data.rate_limited) {
+        resultDiv.insertAdjacentHTML('beforeend', '<div class="alert error" style="margin-top:12px;">Too many attempts. Please wait an hour and try again.</div>');
+        const b = $('cancelYes'); if (b) b.disabled = false;
+        return;
+      }
       statusCtx = null;
       if (!data || !data.cancelled) {
         resultDiv.innerHTML = '<div class="alert error">No active request found. It may already have been cancelled.</div>';
@@ -932,6 +946,130 @@
       console.error('Cancel error:', err);
       resultDiv.insertAdjacentHTML('beforeend', `<div class="alert error" style="margin-top:12px;">${esc(err.message || 'Could not cancel. Please try again.')}</div>`);
       const b = $('cancelYes'); if (b) b.disabled = false;
+    }
+  }
+
+  // ===== EDIT =====
+  // Waiting request: everything can be edited. Matched request: only the WhatsApp username.
+  function askEdit(d) {
+    const matched = d.status === 'matched';
+    $('editBtn').classList.add('hidden');
+    $('cancelBtn').classList.add('hidden');
+    $('editBox').innerHTML = `
+      <form id="editForm" autocomplete="off" style="margin-top:18px;">
+        <h3 style="font-size:16px; margin:0 0 12px;">Edit your request</h3>
+        ${matched ? `<div class="alert warn">You're matched, so you can only change your WhatsApp username. To change your tutorials, cancel your match and submit a new request.</div>` : `
+        <div class="field"><label for="editMajor">Major</label><select id="editMajor" required></select></div>
+        <div class="field"><label for="editCur">Your Tutorial (numbers only)</label><input id="editCur" type="text" inputmode="numeric" required></div>
+        <div class="field"><label for="editDes">Desired Tutorial(s)</label><input id="editDes" type="text" inputmode="numeric" required>
+          <div class="hint">Changing your major or tutorials moves you to the back of the queue.</div></div>
+        <div class="field"><label for="editDe">German Level</label><select id="editDe"><option value="">Not applicable / Completed</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+        <div class="field"><label for="editEn">English Level</label><select id="editEn"><option value="">Not applicable / Completed</option><option>AS</option><option>SM</option><option>CPS</option><option>RPW</option></select></div>`}
+        <div class="field"><label for="editWa">WhatsApp username (optional)</label><input id="editWa" type="text" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <div class="hint">Shown to your matched partner, with your email.</div></div>
+        <div class="button-group">
+          <button type="button" class="btn-secondary" id="editCancel">Back</button>
+          <button type="submit" class="btn-primary" id="editSave">Save</button>
+        </div>
+        <div id="editAlert" style="margin-top:12px;"></div>
+      </form>`;
+    // values go in as plain text, never as HTML
+    $('editWa').value = d.whatsapp || '';
+    if (!matched) {
+      const sel = $('editMajor');
+      document.querySelectorAll('#major option').forEach(o => sel.appendChild(o.cloneNode(true)));
+      sel.value = d.major || '';
+      $('editCur').value = d.my_tut || '';
+      $('editDes').value = d.desired_tut || '';
+      $('editDe').value = d.german_level || '';
+      $('editEn').value = d.english_level || '';
+      $('editCur').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, ''); });
+      $('editDes').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d,]/g, ''); });
+    }
+    $('editCancel').addEventListener('click', () => {
+      $('editBox').innerHTML = '';
+      $('editBtn').classList.remove('hidden');
+      $('cancelBtn').classList.remove('hidden');
+    });
+    $('editForm').addEventListener('submit', (e) => { e.preventDefault(); saveEdit(d); });
+  }
+
+  async function saveEdit(d) {
+    if (!statusCtx) return;
+    const matched = d.status === 'matched';
+    const alertBox = $('editAlert');
+    const wa = $('editWa').value.trim().replace(/^@+/, '');
+    if (wa && !/^[A-Za-z0-9._-]{1,40}$/.test(wa)) {
+      alertBox.innerHTML = '<div class="alert error">WhatsApp username can only contain letters, numbers, dots, underscores and dashes.</div>';
+      return;
+    }
+    // A matched request keeps every other field exactly as it is
+    const v = matched ? {
+      major: d.major, cur: d.my_tut, des: d.desired_tut, de: d.german_level, en: d.english_level
+    } : {
+      major: $('editMajor').value, cur: $('editCur').value.trim(), des: $('editDes').value.trim(),
+      de: $('editDe').value || null, en: $('editEn').value || null
+    };
+    if (!matched) {
+      const list = [...new Set(v.des.split(',').map(t => t.trim()).filter(Boolean))];
+      if (!v.major || !v.cur || list.length === 0) {
+        alertBox.innerHTML = '<div class="alert error">Please fill in all fields.</div>';
+        return;
+      }
+      if (list.length > 10) { alertBox.innerHTML = '<div class="alert error">Please list 10 or fewer tutorials.</div>'; return; }
+      if (list.includes(v.cur)) { alertBox.innerHTML = '<div class="alert error">Your desired list can\'t include your current tutorial.</div>'; return; }
+      v.des = list.join(',');
+    }
+
+    $('editSave').disabled = true;
+    try {
+      const { data, error } = await supabase.rpc('edit_request', {
+        p_student_id: statusCtx.id,
+        p_email: statusCtx.email,
+        p_major: v.major,
+        p_current_tut: v.cur,
+        p_desired_tut: v.des,
+        p_german_level: v.de,
+        p_english_level: v.en,
+        p_whatsapp: wa || null
+      });
+      if (error) throw error;
+
+      switch (data.status) {
+        case 'updated':
+        case 'queued':
+          await checkMyStatus();
+          $('statusCheckResult').insertAdjacentHTML('afterbegin',
+            `<div class="alert success">${data.status === 'queued' ? 'Saved. You are in the queue (at the back, because your tutorials changed).' : 'Saved.'}</div>`);
+          return;
+        case 'matched':
+          await sendNotifications(data.notify);
+          $('statusCheckResult').innerHTML = `
+            <div class="alert success">Saved. And we found you a match!</div>
+            <div class="match-card"><div class="match-header">✓ MATCHED!</div>${partnerBlock(data)}</div>
+            <p class="hint" style="text-align:center;">Use "Check Status" again to edit or cancel.</p>`;
+          statusCtx = null;
+          return;
+        case 'matched_locked':
+          alertBox.innerHTML = '<div class="alert error">You\'re matched, so this request can\'t be edited. Cancel your match and submit a new request instead.</div>';
+          break;
+        case 'rate_limited':
+          alertBox.innerHTML = '<div class="alert error">Too many attempts. Please wait an hour and try again.</div>';
+          break;
+        case 'invalid':
+          alertBox.innerHTML = `<div class="alert error">${esc(data.message || 'Please check your details.')}</div>`;
+          break;
+        case 'not_found':
+          alertBox.innerHTML = '<div class="alert error">Your request could not be found. It may have been cancelled.</div>';
+          break;
+        default:
+          throw new Error('Unexpected response. Please try again.');
+      }
+    } catch (err) {
+      console.error('Edit error:', err);
+      alertBox.innerHTML = `<div class="alert error">${esc(err.message || 'Could not save. Please try again.')}</div>`;
+    } finally {
+      const b = $('editSave'); if (b) b.disabled = false;
     }
   }
 

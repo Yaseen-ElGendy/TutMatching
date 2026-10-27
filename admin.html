@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>TutMatching Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #0066cc; --primary-dark: #004fa3; --primary-light: #e6f0ff;
+    --text: #1a1a1a; --text-soft: #666; --bg: #f5f5f5; --bg-raised: #ffffff; --border: #ddd;
+    --success: #00a34f; --success-bg: #e6f5f0; --error: #c41e3a; --error-bg: #fee;
+    --warn: #b36b00; --warn-bg: #fff3cd; --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #4d94ff; --primary-dark: #3d7fcc; --primary-light: #1a3a5c;
+      --text: #ffffff; --text-soft: #aaa; --bg: #1a1a1a; --bg-raised: #242424; --border: #444;
+      --success: #00d966; --success-bg: #1c3229; --warn: #ffb84d; --warn-bg: #3a2f10;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+  .container { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 24px; flex-wrap: wrap; }
+  .logo { font-size: 22px; font-weight: 700; color: var(--primary); }
+  .logo small { font-size: 12px; font-weight: 600; color: var(--text-soft); margin-left: 8px; text-transform: uppercase; letter-spacing: .08em; }
+  .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .updated { font-size: 12px; color: var(--text-soft); }
+  .card { background: var(--bg-raised); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .login { max-width: 400px; margin: 40px auto; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  input { width: 100%; padding: 11px 13px; font-size: 14px; font-family: inherit; border: 1.5px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
+  input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+  .field { margin-bottom: 14px; }
+  button { padding: 10px 16px; font-size: 14px; font-weight: 600; font-family: inherit; border: none; border-radius: 6px; cursor: pointer; }
+  .btn-primary { background: var(--primary); color: #fff; width: 100%; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn-secondary { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); padding: 7px 14px; }
+  .btn-secondary:hover { background: var(--primary-light); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .alert { padding: 12px 14px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+  .alert.error { background: var(--error-bg); color: var(--error); border: 1px solid #f5c6c6; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--bg-raised); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .tile .n { font-size: 28px; font-weight: 700; line-height: 1.1; }
+  .tile .l { font-size: 12px; color: var(--text-soft); margin-top: 4px; }
+  .tile.good .n { color: var(--success); }
+  .tile.bad .n { color: var(--error); }
+  .tile.warn .n { color: var(--warn); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-soft); }
+  td.num, th.num { text-align: right; }
+  .empty { color: var(--text-soft); font-size: 13px; padding: 8px 0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge.ok { background: var(--success-bg); color: var(--success); }
+  .badge.wait { background: var(--warn-bg); color: var(--warn); }
+  .badge.fail { background: var(--error-bg); color: var(--error); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- LOGIN -->
+  <div id="loginView" class="hidden">
+    <div class="card login">
+      <div class="logo" style="margin-bottom:16px;">TutMatching <small>Admin</small></div>
+      <form id="loginForm" autocomplete="on">
+        <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
+        <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+        <button type="submit" class="btn-primary" id="loginBtn">Log in</button>
+        <div id="loginAlert"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashView" class="hidden">
+    <div class="topbar">
+      <div class="logo">TutMatching <small>Admin</small></div>
+      <div class="actions">
+        <span class="updated" id="updated"></span>
+        <button class="btn-secondary" id="refreshBtn" type="button">Refresh</button>
+        <button class="btn-secondary" id="logoutBtn" type="button">Log out</button>
+      </div>
+    </div>
+    <div id="dashAlert"></div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="grid2">
+      <div class="card"><h2>By major</h2><div class="scroll" id="byMajor"></div></div>
+      <div class="card"><h2>Most wanted swaps (waiting)</h2><div class="scroll" id="swaps"></div></div>
+    </div>
+
+    <div class="card"><h2>Waiting requests (oldest first)</h2><div class="scroll" id="waiting"></div></div>
+    <div class="card"><h2>Latest matches</h2><div class="scroll" id="matches"></div></div>
+    <div class="card"><h2>Emails</h2><div class="scroll" id="emails"></div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const SUPABASE_URL = 'https://pyegfqoxnofszjbpcyil.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZWdmcW94bm9mc3pqYnBjeWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NjEzOTgsImV4cCI6MjEwNTMzNzM5OH0.4pO-72hxkb2zMyDK3rRmNYB4wen-ibEq6B7X9RBKW38';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => $(id).classList.remove('hidden');
+  const hide = (id) => $(id).classList.add('hidden');
+
+  // Everything that came from the database is escaped before it goes into the page
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function when(ts) {
+    if (!ts) return '';
+    const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(ts) ? ts : ts + 'Z');
+    return isNaN(d) ? esc(ts) : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  function table(cols, rows, emptyText) {
+    if (!rows || rows.length === 0) return `<div class="empty">${esc(emptyText)}</div>`;
+    const head = cols.map(c => `<th class="${c.num ? 'num' : ''}">${esc(c.h)}</th>`).join('');
+    const body = rows.map(r =>
+      `<tr>${cols.map(c => `<td class="${c.num ? 'num' : ''}">${c.html ? c.f(r) : esc(c.f(r))}</td>`).join('')}</tr>`).join('');
+    return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+
+  function render(d) {
+    const c = d.counts || {};
+    const tile = (n, l, cls) => `<div class="tile ${cls || ''}"><div class="n">${esc(n)}</div><div class="l">${esc(l)}</div></div>`;
+    $('tiles').innerHTML =
+      tile(c.waiting, 'Waiting', c.waiting > 0 ? 'warn' : '') +
+      tile(c.matched, 'Students matched', 'good') +
+      tile(c.matches, 'Matches', 'good') +
+      tile(c.cancelled, 'Cancelled') +
+      tile(c.emails_sent, 'Emails sent') +
+      tile(c.emails_pending, 'Emails pending', c.emails_pending > 0 ? 'warn' : '') +
+      tile(c.emails_failed, 'Emails failed', c.emails_failed > 0 ? 'bad' : '');
+
+    $('byMajor').innerHTML = table([
+      { h: 'Major', f: r => r.major },
+      { h: 'Waiting', f: r => r.waiting, num: true },
+      { h: 'Matched', f: r => r.matched, num: true }
+    ], d.by_major, 'No requests yet.');
+
+    $('swaps').innerHTML = table([
+      { h: 'Swap', f: r => `Tut ${r.current_tut} → ${String(r.desired_tut).split(',').join(' or ')}` },
+      { h: 'Waiting', f: r => r.n, num: true }
+    ], d.waiting_swaps, 'Nobody is waiting.');
+
+    $('waiting').innerHTML = table([
+      { h: 'Student ID', f: r => r.student_id },
+      { h: 'Email', f: r => r.email },
+      { h: 'Major', f: r => r.major },
+      { h: 'Swap', f: r => `Tut ${r.current_tut} → ${String(r.desired_tut).split(',').join(' or ')}` },
+      { h: 'WhatsApp', f: r => r.whatsapp || '' },
+      { h: 'Since', f: r => when(r.created_at) }
+    ], d.waiting, 'Nobody is waiting.');
+
+    $('matches').innerHTML = table([
+      { h: 'When', f: r => when(r.created_at) },
+      { h: 'Student A', f: r => `${r.a_id} (Tut ${r.a_tut})` },
+      { h: 'Student B', f: r => `${r.b_id} (Tut ${r.b_tut})` },
+      { h: 'Coordinator', f: r => r.coordinator_needed ? 'needed' : '' }
+    ], d.matches, 'No matches yet.');
+
+    $('emails').innerHTML = table([
+      { h: 'When', f: r => when(r.created_at) },
+      { h: 'Type', f: r => r.kind },
+      { h: 'To', f: r => r.recipient_email },
+      { h: 'Status', html: true, f: r => r.sent_at
+          ? '<span class="badge ok">sent</span>'
+          : (r.attempts >= 5 ? '<span class="badge fail">failed</span>' : '<span class="badge wait">pending</span>') },
+      { h: 'Tries', f: r => r.attempts, num: true }
+    ], d.notifications, 'No emails yet.');
+
+    $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString([], { timeStyle: 'short' });
+  }
+
+  async function load() {
+    $('dashAlert').innerHTML = '';
+    $('refreshBtn').disabled = true;
+    try {
+      const { data, error } = await supabase.rpc('admin_overview');
+      if (error) throw error;
+      render(data);
+    } catch (err) {
+      console.error('Admin load error:', err);
+      $('dashAlert').innerHTML = `<div class="alert error">${esc(err.message || 'Could not load data.')}</div>`;
+    } finally {
+      $('refreshBtn').disabled = false;
+    }
+  }
+
+  async function enter() {
+    // Logged in, but only accounts listed as admins may see anything
+    const { data, error } = await supabase.rpc('is_admin');
+    if (error || data !== true) {
+      await supabase.auth.signOut();
+      hide('dashView'); show('loginView');
+      $('loginAlert').innerHTML = '<div class="alert error">This account is not an admin.</div>';
+      return false;
+    }
+    hide('loginView'); show('dashView');
+    await load();
+    return true;
+  }
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('loginAlert').innerHTML = '';
+    $('loginBtn').disabled = true;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: $('email').value.trim(),
+        password: $('password').value
+      });
+      if (error) throw error;
+      $('password').value = '';
+      await enter();
+    } catch (err) {
+      $('loginAlert').innerHTML = `<div class="alert error">${esc(err.message || 'Login failed.')}</div>`;
+    } finally {
+      $('loginBtn').disabled = false;
+    }
+  });
+
+  $('refreshBtn').addEventListener('click', load);
+  $('logoutBtn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    $('tiles').innerHTML = $('byMajor').innerHTML = $('swaps').innerHTML =
+      $('waiting').innerHTML = $('matches').innerHTML = $('emails').innerHTML = '';
+    hide('dashView'); show('loginView');
+  });
+
+  (async function init() {
+    const { data } = await supabase.auth.getSession();
+    if (data && data.session) { await enter(); } else { show('loginView'); }
+  })();
+})();
+</script>
+</body>
+</html>
