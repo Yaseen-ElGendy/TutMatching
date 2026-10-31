@@ -1,4 +1,4 @@
--- waiting students can edit; matched students can only change their WhatsApp username
+-- waiting students can edit; matched students cannot edit at all
 SET ROLE anon;
 SELECT submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,NULL,false);
 SELECT submit_request('55-3','c@student.guc.edu.eg','CS','5','6',NULL,NULL,NULL,false);
@@ -28,8 +28,8 @@ SELECT t_assert(edit_request('55-2','b@student.guc.edu.eg','CS','3','1',NULL,NUL
 RESET ROLE;
 DELETE FROM rate_events;
 SET ROLE anon;
-SELECT t_assert((edit_request('55-1','a@student.guc.edu.eg','CS','1','2,3','1','AS','a_new')->>'status') = 'updated', 'matched student can change WhatsApp only');
-SELECT t_assert((check_status('55-2','b@student.guc.edu.eg')->>'partner_whatsapp') = 'a_new', 'partner sees the new WhatsApp username');
+SELECT t_assert((edit_request('55-1','a@student.guc.edu.eg','CS','1','2,3','1','AS','a_new')->>'status') = 'matched_locked', 'matched student cannot even change WhatsApp');
+SELECT t_assert(coalesce((check_status('55-2','b@student.guc.edu.eg')->>'partner_whatsapp'),'') <> 'a_new', 'partner does not see a refused change');
 SELECT t_assert(edit_request('55-1','a@student.guc.edu.eg','CS','1','2','1','AS','a_new')->>'status' = 'matched_locked', 'matched student cannot change tutorials');
 SELECT t_assert(edit_request('55-1','a@student.guc.edu.eg','Law','1','2,3','1','AS','a_new')->>'status' = 'matched_locked', 'matched student cannot change major');
 SELECT t_assert(edit_request('55-1','a@student.guc.edu.eg','CS','1','2,3','2','AS','a_new')->>'status' = 'matched_locked', 'matched student cannot change levels');
