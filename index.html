@@ -1040,7 +1040,7 @@
         case 'queued':
           await checkMyStatus();
           $('statusCheckResult').insertAdjacentHTML('afterbegin',
-            `<div class="alert success">${data.status === 'queued' ? 'Saved. You are in the queue (at the back, because your tutorials changed).' : 'Saved.'}</div>`);
+            `<div class="alert success">${data.status === 'queued' ? 'Saved. You are back in the queue.' : 'Saved.'}</div>`);
           return;
         case 'matched':
           await sendNotifications(data.notify);
