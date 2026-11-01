@@ -10,7 +10,7 @@ SELECT t_denied('UPDATE submissions SET status = ''matched''', 'anon cannot upda
 SELECT t_denied('DELETE FROM submissions', 'anon cannot delete submissions');
 SELECT t_denied('SELECT _find_match(gen_random_uuid())', 'anon cannot call _find_match');
 SELECT t_denied($$SELECT _rate_check('1-1','a@b','act',5)$$, 'anon cannot call _rate_check');
-SELECT t_denied($$SELECT _clean_request('1-1','a@b','m','1','2',NULL,NULL,NULL)$$, 'anon cannot call _clean_request');
+SELECT t_denied($$SELECT _clean_request('1-1','a@b','m','1','2',NULL,NULL,NULL,'1')$$, 'anon cannot call _clean_request');
 SELECT t_denied('SELECT claim_notification(gen_random_uuid())',   'anon cannot claim notifications');
 SELECT t_denied('SELECT finish_notification(gen_random_uuid())',  'anon cannot finish notifications');
 SELECT t_denied('SELECT release_notification(gen_random_uuid())', 'anon cannot release notifications');

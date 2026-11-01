@@ -1,10 +1,10 @@
 -- the admin data is only for logins listed in `admins`
 INSERT INTO auth.users (id, email) VALUES ('00000000-0000-0000-0000-0000000000a1', 'admin@example.com'), ('00000000-0000-0000-0000-0000000000b2', 'student@example.com');
 SET ROLE anon;
-SELECT submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false);
-SELECT submit_request('55-2','b@student.guc.edu.eg','CS','2','1',NULL,NULL,NULL,false);
-SELECT submit_request('55-3','c@student.guc.edu.eg','Law','4','5',NULL,NULL,NULL,false);
-SELECT submit_request('55-4','d@student.guc.edu.eg','Law','7','8',NULL,NULL,NULL,false);
+SELECT submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false,'1');
+SELECT submit_request('55-2','b@student.guc.edu.eg','CS','2','1',NULL,NULL,NULL,false,'1');
+SELECT submit_request('55-3','c@student.guc.edu.eg','Law','4','5',NULL,NULL,NULL,false,'1');
+SELECT submit_request('55-4','d@student.guc.edu.eg','Law','7','8',NULL,NULL,NULL,false,'1');
 SELECT cancel_request('55-4','d@student.guc.edu.eg');
 RESET ROLE;
 

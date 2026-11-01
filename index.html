@@ -393,6 +393,19 @@
             </select>
           </div>
           <div class="field">
+            <label for="studyYear">Study Year</label>
+            <select id="studyYear" required>
+              <option value="">Select your study year</option>
+              <option value="1">Year 1</option>
+              <option value="2">Year 2</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+              <option value="5">Year 5</option>
+              <option value="6">Year 6</option>
+            </select>
+            <div class="hint">You are only matched with students in the same major and the same year.</div>
+          </div>
+          <div class="field">
             <label for="currentTut">Your Tutorial (numbers only)</label>
             <input id="currentTut" type="text" placeholder="e.g. 4" inputmode="numeric" required>
           </div>
@@ -450,6 +463,7 @@
         <div style="background: var(--bg); padding: 16px; border-radius: 6px; margin-bottom: 20px; font-size: 13px;">
           <div style="margin-bottom: 12px;"><strong>ID:</strong> <span id="confirmId"></span></div>
           <div style="margin-bottom: 12px;"><strong>Major:</strong> <span id="confirmMajor"></span></div>
+          <div style="margin-bottom: 12px;"><strong>Year:</strong> <span id="confirmYear"></span></div>
           <div style="margin-bottom: 12px;"><strong>Swap:</strong> <span id="confirmSwap"></span></div>
           <div id="confirmLevels"></div>
         </div>
@@ -639,10 +653,11 @@
     e.preventDefault();
     clearAlerts();
     const major = $('major').value;
+    const studyYear = $('studyYear').value;
     const currentTut = $('currentTut').value.trim();
     const desiredTutRaw = $('desiredTut').value.trim();
 
-    if (!major || !currentTut || !desiredTutRaw) {
+    if (!major || !studyYear || !currentTut || !desiredTutRaw) {
       showAlert(2, 'Please fill in all fields.');
       return;
     }
@@ -665,6 +680,7 @@
     }
 
     formData.major = major;
+    formData.studyYear = studyYear;
     formData.currentTut = currentTut;
     formData.desiredTut = desiredList.join(',');
     goToStep(3);
@@ -678,6 +694,7 @@
 
     $('confirmId').textContent = formData.studentId;
     $('confirmMajor').textContent = formData.major;
+    $('confirmYear').textContent = 'Year ' + formData.studyYear;
     $('confirmSwap').textContent = formData.currentTut + ' → ' + formData.desiredTut.split(',').join(' or ');
 
     let levels = '';
@@ -730,7 +747,8 @@
         p_german_level: formData.germanLevel,
         p_english_level: formData.englishLevel,
         p_whatsapp: whatsapp || null,
-        p_replace: replace
+        p_replace: replace,
+        p_study_year: formData.studyYear
       });
       if (error) throw error;
 
@@ -811,7 +829,7 @@
     show('formSection');
     hide('resultsSection');
     hide('statusCheckPage');
-    ['studentId', 'major', 'currentTut', 'desiredTut', 'germanLevel', 'englishLevel',
+    ['studentId', 'major', 'studyYear', 'currentTut', 'desiredTut', 'germanLevel', 'englishLevel',
      'email', 'emailConfirm', 'whatsapp'].forEach(id => { $(id).value = ''; });
     formData = {};
     clearAlerts();
@@ -873,7 +891,7 @@
         resultDiv.innerHTML = `
           <div class="empty-state">
             <p><strong>Still in the queue.</strong></p>
-            <p>${swapText(data.my_tut, data.desired_tut)}</p>
+            <p>${data.study_year ? 'Year ' + esc(data.study_year) + ' · ' : ''}${swapText(data.my_tut, data.desired_tut)}</p>
             <p style="margin-top:10px; font-size:13px;">We'll email you at <strong>${esc(data.email)}</strong> as soon as a match is found (check your junk folder too).</p>
           </div>
           ${cancelBtn}
@@ -960,9 +978,10 @@
         <h3 style="font-size:16px; margin:0 0 12px;">Edit your request</h3>
         ${matched ? `<div class="alert warn">You're matched, so you can only change your WhatsApp username. To change your tutorials, cancel your match and submit a new request.</div>` : `
         <div class="field"><label for="editMajor">Major</label><select id="editMajor" required></select></div>
+        <div class="field"><label for="editYear">Study Year</label><select id="editYear" required><option value="">Select your study year</option><option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option><option value="5">Year 5</option><option value="6">Year 6</option></select></div>
         <div class="field"><label for="editCur">Your Tutorial (numbers only)</label><input id="editCur" type="text" inputmode="numeric" required></div>
         <div class="field"><label for="editDes">Desired Tutorial(s)</label><input id="editDes" type="text" inputmode="numeric" required>
-          <div class="hint">Changing your major or tutorials moves you to the back of the queue.</div></div>
+          <div class="hint">Changing your major, year or tutorials moves you to the back of the queue.</div></div>
         <div class="field"><label for="editDe">German Level</label><select id="editDe"><option value="">Not applicable / Completed</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
         <div class="field"><label for="editEn">English Level</label><select id="editEn"><option value="">Not applicable / Completed</option><option>AS</option><option>SM</option><option>CPS</option><option>RPW</option></select></div>`}
         <div class="field"><label for="editWa">WhatsApp username (optional)</label><input id="editWa" type="text" autocapitalize="off" autocorrect="off" spellcheck="false">
@@ -979,6 +998,7 @@
       const sel = $('editMajor');
       document.querySelectorAll('#major option').forEach(o => sel.appendChild(o.cloneNode(true)));
       sel.value = d.major || '';
+      $('editYear').value = d.study_year ? String(d.study_year) : '';
       $('editCur').value = d.my_tut || '';
       $('editDes').value = d.desired_tut || '';
       $('editDe').value = d.german_level || '';
@@ -1005,14 +1025,14 @@
     }
     // A matched request keeps every other field exactly as it is
     const v = matched ? {
-      major: d.major, cur: d.my_tut, des: d.desired_tut, de: d.german_level, en: d.english_level
+      major: d.major, year: d.study_year, cur: d.my_tut, des: d.desired_tut, de: d.german_level, en: d.english_level
     } : {
-      major: $('editMajor').value, cur: $('editCur').value.trim(), des: $('editDes').value.trim(),
+      major: $('editMajor').value, year: $('editYear').value, cur: $('editCur').value.trim(), des: $('editDes').value.trim(),
       de: $('editDe').value || null, en: $('editEn').value || null
     };
     if (!matched) {
       const list = [...new Set(v.des.split(',').map(t => t.trim()).filter(Boolean))];
-      if (!v.major || !v.cur || list.length === 0) {
+      if (!v.major || !v.year || !v.cur || list.length === 0) {
         alertBox.innerHTML = '<div class="alert error">Please fill in all fields.</div>';
         return;
       }
@@ -1031,7 +1051,8 @@
         p_desired_tut: v.des,
         p_german_level: v.de,
         p_english_level: v.en,
-        p_whatsapp: wa || null
+        p_whatsapp: wa || null,
+        p_study_year: v.year == null ? null : String(v.year)
       });
       if (error) throw error;
 

@@ -1,18 +1,18 @@
 SET ROLE anon;
-SELECT submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false);
+SELECT submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false,'1');
 SELECT t_assert((cancel_request('55-1','wrong@student.guc.edu.eg')->>'cancelled') = 'false', 'cancel with the wrong email does nothing');
 SELECT t_assert((cancel_request('55-1','a@student.guc.edu.eg')->>'was') = 'waiting', 'waiting request can be cancelled');
 SELECT t_assert((cancel_request('55-1','a@student.guc.edu.eg')->>'cancelled') = 'false', 'cancelling twice does nothing');
-SELECT t_assert(submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false)->>'status' = 'queued', 'cancelled student can submit again');
+SELECT t_assert(submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false,'1')->>'status' = 'queued', 'cancelled student can submit again');
 RESET ROLE;
 SELECT t_assert((SELECT count(*) FROM submissions WHERE student_id = '55-1' AND status = 'cancelled' AND whatsapp IS NULL) = 1, 'cancelled request has its WhatsApp removed');
 
 -- matched cancel with a waiting rematch available
 DELETE FROM notifications; DELETE FROM matches; DELETE FROM submissions; DELETE FROM rate_events;
 SET ROLE anon;
-SELECT submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false);
-SELECT submit_request('55-2','b@student.guc.edu.eg','CS','2','1',NULL,NULL,NULL,false);
-SELECT submit_request('55-4','d@student.guc.edu.eg','CS','2','1','2','AS','dave.w',false);
+SELECT submit_request('55-1','a@student.guc.edu.eg','CS','1','2',NULL,NULL,'alice_wa',false,'1');
+SELECT submit_request('55-2','b@student.guc.edu.eg','CS','2','1',NULL,NULL,NULL,false,'1');
+SELECT submit_request('55-4','d@student.guc.edu.eg','CS','2','1','2','AS','dave.w',false,'1');
 RESET ROLE;
 DO $$ DECLARE t0 TIMESTAMP; BEGIN
   SELECT created_at INTO t0 FROM submissions WHERE student_id = '55-1';
@@ -32,8 +32,8 @@ SELECT t_assert((SELECT count(*) FROM matches) = 1, 'old match removed, new matc
 -- matched cancel, nobody to rematch with
 DELETE FROM notifications; DELETE FROM matches; DELETE FROM submissions; DELETE FROM rate_events;
 SET ROLE anon;
-SELECT submit_request('70-1','g@student.guc.edu.eg','CS','9','8',NULL,NULL,NULL,false);
-SELECT submit_request('70-2','h@student.guc.edu.eg','CS','8','9',NULL,NULL,NULL,false);
+SELECT submit_request('70-1','g@student.guc.edu.eg','CS','9','8',NULL,NULL,NULL,false,'1');
+SELECT submit_request('70-2','h@student.guc.edu.eg','CS','8','9',NULL,NULL,NULL,false,'1');
 SELECT cancel_request('70-2','h@student.guc.edu.eg');
 SELECT t_assert((check_status('70-1','g@student.guc.edu.eg')->>'status') = 'waiting', 'partner goes back to waiting when nobody fits');
 RESET ROLE;

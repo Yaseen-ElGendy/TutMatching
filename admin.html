@@ -156,12 +156,13 @@
 
     $('byMajor').innerHTML = table([
       { h: 'Major', f: r => r.major },
+      { h: 'Year', f: r => r.study_year ? 'Year ' + r.study_year : 'n/a' },
       { h: 'Waiting', f: r => r.waiting, num: true },
       { h: 'Matched', f: r => r.matched, num: true }
     ], d.by_major, 'No requests yet.');
 
     $('swaps').innerHTML = table([
-      { h: 'Swap', f: r => `Tut ${r.current_tut} → ${String(r.desired_tut).split(',').join(' or ')}` },
+      { h: 'Swap', f: r => `${r.study_year ? 'Y' + r.study_year + ' · ' : ''}Tut ${r.current_tut} → ${String(r.desired_tut).split(',').join(' or ')}` },
       { h: 'Waiting', f: r => r.n, num: true }
     ], d.waiting_swaps, 'Nobody is waiting.');
 
@@ -169,6 +170,7 @@
       { h: 'Student ID', f: r => r.student_id },
       { h: 'Email', f: r => r.email },
       { h: 'Major', f: r => r.major },
+      { h: 'Year', f: r => r.study_year ? 'Year ' + r.study_year : 'n/a' },
       { h: 'Swap', f: r => `Tut ${r.current_tut} → ${String(r.desired_tut).split(',').join(' or ')}` },
       { h: 'WhatsApp', f: r => r.whatsapp || '' },
       { h: 'Since', f: r => when(r.created_at) }
@@ -176,6 +178,7 @@
 
     $('matches').innerHTML = table([
       { h: 'When', f: r => when(r.created_at) },
+      { h: 'Year', f: r => r.year ? 'Year ' + r.year : 'n/a' },
       { h: 'Student A', f: r => `${r.a_id} (Tut ${r.a_tut})` },
       { h: 'Student B', f: r => `${r.b_id} (Tut ${r.b_tut})` },
       { h: 'Coordinator', f: r => r.coordinator_needed ? 'needed' : '' }

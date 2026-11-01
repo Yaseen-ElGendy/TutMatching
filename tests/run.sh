@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 SQL_DIR="${SQL_DIR:-../sql}"
 DB="tutmatching_test_$$"
 PSQL="psql -v ON_ERROR_STOP=1 -q -X"
-ORDER=(tutmatching-v5-migration.sql tutmatching-v5.1-emails.sql tutmatching-v5.2-email-details.sql tutmatching-v5.3-cancel-details.sql tutmatching-v6-edit-limits-admin.sql)
+ORDER=(tutmatching-v5-migration.sql tutmatching-v5.1-emails.sql tutmatching-v5.2-email-details.sql tutmatching-v5.3-cancel-details.sql tutmatching-v6-edit-limits-admin.sql tutmatching-v7-study-year.sql)
 
 cleanup() { $PSQL -d postgres -c "DROP DATABASE IF EXISTS $DB" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
@@ -37,7 +37,7 @@ done
 echo "== sql/ concurrency (60 simultaneous requests)"
 $PSQL -d "$DB" -c "DELETE FROM notifications; DELETE FROM matches; DELETE FROM submissions; DELETE FROM rate_events;" >/dev/null
 export DB
-seq 1 60 | xargs -P 30 -I{} bash -c 'if [ $(({}%2)) -eq 0 ]; then c=1; d=2; else c=2; d=1; fi; psql -X -q -At -d "$DB" -c "SET ROLE anon; SELECT submit_request('"'"'55-{}'"'"','"'"'s{}@student.guc.edu.eg'"'"','"'"'CS'"'"','"'"'$c'"'"','"'"'$d'"'"',NULL,NULL,NULL,false)" >/dev/null'
+seq 1 60 | xargs -P 30 -I{} bash -c 'if [ $(({}%2)) -eq 0 ]; then c=1; d=2; else c=2; d=1; fi; psql -X -q -At -d "$DB" -c "SET ROLE anon; SELECT submit_request('"'"'55-{}'"'"','"'"'s{}@student.guc.edu.eg'"'"','"'"'CS'"'"','"'"'$c'"'"','"'"'$d'"'"',NULL,NULL,NULL,false,'"'"'1'"'"')" >/dev/null'
 $PSQL -d "$DB" -f concurrency_check.sql 2>&1 | grep -E "PASS|FAIL" || fail=1
 $PSQL -d "$DB" -f concurrency_check.sql >/dev/null 2>&1 || fail=1
 

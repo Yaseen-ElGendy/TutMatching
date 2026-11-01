@@ -2,16 +2,16 @@
 
 A web app that matches GUC students who want to swap tutorial slots. Students enter their current and desired tutorials, and the app pairs them with a compatible student, or queues them and emails them when a match appears. It replaces the usual approach of posting swap requests in a WhatsApp group where messages get buried.
 
-**Live site:** _add your Vercel link here_
+**Live site:** https://tut-matching.vercel.app
 
 ## What it does
 
-- Matches students in the **same major** whose tutorial wishes are **mutual**; the oldest waiting request is matched first.
+- Matches students in the **same major and same study year (1 to 6)** whose tutorial wishes are **mutual**; the oldest waiting request is matched first.
 - Accepts a **list** of acceptable tutorials (for example `3,4,5`), so flexible students match faster.
 - Flags swaps where German or English levels differ and tells both students to contact the academic coordinator.
 - Emails a waiting student the moment a match is found, with a link to the GUC portal to make the swap.
 - Lets a student **check their status** and **cancel** their request. Cancelling a match puts the partner back in the queue, tries to rematch them straight away, and emails them.
-- Lets a student **edit** a waiting request (changing major or tutorials sends them to the back of the queue; changing only levels or WhatsApp keeps their place). A matched request can't be edited; the student cancels and resubmits.
+- Lets a student **edit** a waiting request (changing major, year or tutorials sends them to the back of the queue; changing only levels or WhatsApp keeps their place). A matched request can't be edited; the student cancels and resubmits.
 - **Rate limit:** 5 submit/edit/cancel actions per hour per student ID and per email (status checks: 20 per hour).
 - Private **admin page** (`admin.html`, login required) showing counts, waiting requests, matches and email delivery.
 - Optional WhatsApp username, shown to the matched partner only, as an easier way to connect.
@@ -60,13 +60,14 @@ sql/tutmatching-v5.1-emails.sql  database-triggered emails and retry job
 sql/tutmatching-v5.2-email-details.sql  match email includes partner details
 sql/tutmatching-v5.3-cancel-details.sql  cancellation email carries the new partner after a rematch
 sql/tutmatching-v6-edit-limits-admin.sql  edit request, rate limits, admin data
+sql/tutmatching-v7-study-year.sql  study year (1 to 6), matching within the same year
 sql/admin-setup.sql              makes your account an admin
 sql/clear-test-data.sql          wipes test data
 ```
 
 ## Setup
 
-1. Create a Supabase project and run the SQL files in the SQL Editor, in order (v5, v5.1, v5.2, v5.3, v6). If you ever re-run an earlier file, re-run v5.1 and v6 after it.
+1. Create a Supabase project and run the SQL files in the SQL Editor, in order (v5, v5.1, v5.2, v5.3, v6, v7). If you ever re-run an earlier file, re-run the ones after it (v5.1, v6, v7).
 2. Create a Gmail account for sending, turn on 2-step verification, and create an app password.
 3. Deploy the function:
    ```
