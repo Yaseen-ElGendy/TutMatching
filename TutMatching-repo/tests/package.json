@@ -1,0 +1,11 @@
+{
+  "name": "tutmatching-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node function/notify.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
