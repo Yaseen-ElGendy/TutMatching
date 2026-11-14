@@ -11,10 +11,10 @@ A web app that matches GUC students who want to swap tutorial slots. Students en
 - Flags swaps where German or English levels differ and tells both students to contact the academic coordinator.
 - Emails a waiting student the moment a match is found, with a link to the GUC portal to make the swap.
 - Lets a student **check their status** and **cancel** their request. Cancelling a match puts the partner back in the queue, tries to rematch them straight away, and emails them.
-- Lets a student **edit** a waiting request (changing major, year or tutorials sends them to the back of the queue; changing only levels or WhatsApp keeps their place). A matched request can't be edited; the student cancels and resubmits.
+- Lets a student **edit** a waiting request (changing major, year or tutorials sends them to the back of the queue; changing only levels or contact detail keeps their place). A matched request can't be edited; the student cancels and resubmits.
 - **Rate limit:** 5 submit/edit/cancel actions per hour per student ID and per email (status checks: 20 per hour).
 - Private **admin page** (`admin.html`, login required) showing counts, waiting requests, matches and email delivery.
-- Optional WhatsApp username, shown to the matched partner only, as an easier way to connect.
+- Every request needs a **WhatsApp username, a phone number, or both** (at least one is required, checked in the page and in the database). Whatever is given is shown to the matched partner only, with the email, and is erased when a request is cancelled.
 - Accepts only `@student.guc.edu.eg` addresses, one active request per student ID and per email.
 
 ## How it works
@@ -61,13 +61,14 @@ sql/tutmatching-v5.2-email-details.sql  match email includes partner details
 sql/tutmatching-v5.3-cancel-details.sql  cancellation email carries the new partner after a rematch
 sql/tutmatching-v6-edit-limits-admin.sql  edit request, rate limits, admin data
 sql/tutmatching-v7-study-year.sql  study year (1 to 6), matching within the same year
+sql/tutmatching-v8-contact.sql  phone number or WhatsApp username required
 sql/admin-setup.sql              makes your account an admin
 sql/clear-test-data.sql          wipes test data
 ```
 
 ## Setup
 
-1. Create a Supabase project and run the SQL files in the SQL Editor, in order (v5, v5.1, v5.2, v5.3, v6, v7). If you ever re-run an earlier file, re-run the ones after it (v5.1, v6, v7).
+1. Create a Supabase project and run the SQL files in the SQL Editor, in order (v5, v5.1, v5.2, v5.3, v6, v7, v8). If you ever re-run an earlier file, re-run the ones after it (v5.1, v6, v7, v8).
 2. Create a Gmail account for sending, turn on 2-step verification, and create an app password.
 3. Deploy the function:
    ```

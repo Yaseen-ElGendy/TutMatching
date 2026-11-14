@@ -46,7 +46,8 @@ function buildEmail(n: any, siteUrl: string) {
     ? `\n${heading}\n` +
       `  Student ID: ${n.partner_student_id}\n` +
       `  Email: ${n.partner_email}\n` +
-      (n.partner_whatsapp ? `  WhatsApp username: ${n.partner_whatsapp}\n` : "")
+      (n.partner_whatsapp ? `  WhatsApp username: ${n.partner_whatsapp}\n` : "") +
+      (n.partner_phone ? `  Phone: ${n.partner_phone}\n` : "")
     : `\nLog back into TutMatching to see your partner's contact details.\n`;
 
   const steps =
