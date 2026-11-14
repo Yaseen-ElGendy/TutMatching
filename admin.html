@@ -173,6 +173,7 @@
       { h: 'Year', f: r => r.study_year ? 'Year ' + r.study_year : 'n/a' },
       { h: 'Swap', f: r => `Tut ${r.current_tut} → ${String(r.desired_tut).split(',').join(' or ')}` },
       { h: 'WhatsApp', f: r => r.whatsapp || '' },
+      { h: 'Phone', f: r => r.phone || '' },
       { h: 'Since', f: r => when(r.created_at) }
     ], d.waiting, 'Nobody is waiting.');
 

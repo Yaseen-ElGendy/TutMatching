@@ -403,6 +403,7 @@
               <option value="5">Year 5</option>
               <option value="6">Year 6</option>
             </select>
+            <div class="hint">You are only matched with students in the same major and the same year.</div>
           </div>
           <div class="field">
             <label for="currentTut">Your Tutorial (numbers only)</label>
@@ -479,10 +480,14 @@
             <input id="emailConfirm" type="email" placeholder="Type it again" required>
           </div>
           <div class="field">
-            <label for="whatsapp">WhatsApp username (optional)</label>
+            <label for="whatsapp">WhatsApp username</label>
             <input id="whatsapp" type="text" placeholder="e.g. your.username" autocapitalize="off" autocorrect="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="phone">Phone number</label>
+            <input id="phone" type="tel" inputmode="tel" placeholder="e.g. 01012345678 or +201012345678" autocomplete="off">
             <div class="privacy-note">
-              If you add one, your WhatsApp username will be shown to your matched partner (together with your email) as an easier way to connect. Leave it blank to be contacted by email only.
+              <strong>Enter at least one of the two.</strong> Whatever you enter is shown only to your matched partner (together with your email), so you can reach each other quickly.
             </div>
           </div>
           <div class="button-group">
@@ -536,7 +541,7 @@
   </div>
 
   <footer>
-    Your details are stored privately. Your email (and WhatsApp username, if you add one) is only shown to your matched partner.
+    Your details are stored privately. Your email, WhatsApp username and phone number are only shown to your matched partner.
   </footer>
 </div>
 
@@ -608,9 +613,11 @@
   }
 
   function partnerBlock(d) {
-    const wa = d.partner_whatsapp
+    const wa = (d.partner_whatsapp
       ? `<br><strong>Partner's WhatsApp:</strong> ${esc(d.partner_whatsapp)}`
-      : '';
+      : '') + (d.partner_phone
+      ? `<br><strong>Partner's phone:</strong> ${esc(d.partner_phone)}`
+      : '');
     return `
       <div class="match-info">
         <strong>Your swap:</strong> Tut ${esc(d.my_tut)} → Tut ${esc(d.partner_tut)}<br>
@@ -713,12 +720,23 @@
     submitRequest(false);
   });
 
+  // Same rule as the database: digits only (7 to 15) with an optional + at the start;
+  // spaces, dots, dashes and brackets are allowed while typing. Returns an error text, or '' if fine.
+  function checkPhone(raw) {
+    const p = (raw || '').trim().replace(/[ ().-]/g, '');
+    if (!p) return '';
+    return /^\+?[0-9]{7,15}$/.test(p)
+      ? ''
+      : 'Phone number can only contain digits (7 to 15), with an optional + at the start. Example: +201012345678.';
+  }
+
   async function submitRequest(replace) {
     clearAlerts();
 
     const email = $('email').value.trim().toLowerCase();
     const email2 = $('emailConfirm').value.trim().toLowerCase();
     const whatsapp = $('whatsapp').value.trim().replace(/^@+/, '');
+    const phone = $('phone').value.trim();
 
     if (!email) { showAlert(4, 'Please enter your email.'); return; }
     if (!email.endsWith(GUC_EMAIL_DOMAIN)) {
@@ -731,6 +749,12 @@
     }
     if (whatsapp && !/^[A-Za-z0-9._-]{1,40}$/.test(whatsapp)) {
       showAlert(4, 'WhatsApp username can only contain letters, numbers, dots, underscores and dashes.');
+      return;
+    }
+    const phoneErr = checkPhone(phone);
+    if (phoneErr) { showAlert(4, phoneErr); return; }
+    if (!whatsapp && !phone) {
+      showAlert(4, 'Please enter your WhatsApp username or your phone number (at least one is required).');
       return;
     }
 
@@ -747,7 +771,8 @@
         p_english_level: formData.englishLevel,
         p_whatsapp: whatsapp || null,
         p_replace: replace,
-        p_study_year: formData.studyYear
+        p_study_year: formData.studyYear,
+        p_phone: phone || null
       });
       if (error) throw error;
 
@@ -829,7 +854,7 @@
     hide('resultsSection');
     hide('statusCheckPage');
     ['studentId', 'major', 'studyYear', 'currentTut', 'desiredTut', 'germanLevel', 'englishLevel',
-     'email', 'emailConfirm', 'whatsapp'].forEach(id => { $(id).value = ''; });
+     'email', 'emailConfirm', 'whatsapp', 'phone'].forEach(id => { $(id).value = ''; });
     formData = {};
     clearAlerts();
     goToStep(1);
@@ -882,8 +907,10 @@
       statusCtx = { id, email, data };
 
       const cancelBtn = '<div class="button-group">' + (data.status === 'waiting' ? '<button type="button" class="btn-secondary" id="editBtn">Edit my request</button>' : '') + '<button type="button" class="btn-danger" id="cancelBtn">Cancel my request</button></div><div id="editBox"></div>';
-      const myWa = data.whatsapp
-        ? `<p class="hint" style="text-align:center;">Your WhatsApp username shown to your partner: <strong>${esc(data.whatsapp)}</strong></p>`
+      const myContact = [data.whatsapp ? 'WhatsApp ' + data.whatsapp : '', data.phone ? 'phone ' + data.phone : '']
+        .filter(Boolean).join(' · ');
+      const myWa = myContact
+        ? `<p class="hint" style="text-align:center;">Shown to your partner: <strong>${esc(myContact)}</strong></p>`
         : '';
 
       if (data.status === 'waiting') {
@@ -967,7 +994,7 @@
   }
 
   // ===== EDIT =====
-  // Waiting request: everything can be edited. Matched request: only the WhatsApp username.
+  // Only waiting requests can be edited (a matched request is locked). Contact detail stays required.
   function askEdit(d) {
     const matched = d.status === 'matched';
     $('editBtn').classList.add('hidden');
@@ -975,7 +1002,7 @@
     $('editBox').innerHTML = `
       <form id="editForm" autocomplete="off" style="margin-top:18px;">
         <h3 style="font-size:16px; margin:0 0 12px;">Edit your request</h3>
-        ${matched ? `<div class="alert warn">You're matched, so you can only change your WhatsApp username. To change your tutorials, cancel your match and submit a new request.</div>` : `
+        ${matched ? `<div class="alert warn">You're matched, so this request can't be edited. Cancel your match and submit a new request instead.</div>` : `
         <div class="field"><label for="editMajor">Major</label><select id="editMajor" required></select></div>
         <div class="field"><label for="editYear">Study Year</label><select id="editYear" required><option value="">Select your study year</option><option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option><option value="5">Year 5</option><option value="6">Year 6</option></select></div>
         <div class="field"><label for="editCur">Your Tutorial (numbers only)</label><input id="editCur" type="text" inputmode="numeric" required></div>
@@ -983,8 +1010,9 @@
           <div class="hint">Changing your major, year or tutorials moves you to the back of the queue.</div></div>
         <div class="field"><label for="editDe">German Level</label><select id="editDe"><option value="">Not applicable / Completed</option><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
         <div class="field"><label for="editEn">English Level</label><select id="editEn"><option value="">Not applicable / Completed</option><option>AS</option><option>SM</option><option>CPS</option><option>RPW</option></select></div>`}
-        <div class="field"><label for="editWa">WhatsApp username (optional)</label><input id="editWa" type="text" autocapitalize="off" autocorrect="off" spellcheck="false">
-          <div class="hint">Shown to your matched partner, with your email.</div></div>
+        <div class="field"><label for="editWa">WhatsApp username</label><input id="editWa" type="text" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+        <div class="field"><label for="editPhone">Phone number</label><input id="editPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="e.g. 01012345678 or +201012345678">
+          <div class="hint">Enter at least one of the two. Shown only to your matched partner, with your email.</div></div>
         <div class="button-group">
           <button type="button" class="btn-secondary" id="editCancel">Back</button>
           <button type="submit" class="btn-primary" id="editSave">Save</button>
@@ -993,6 +1021,7 @@
       </form>`;
     // values go in as plain text, never as HTML
     $('editWa').value = d.whatsapp || '';
+    $('editPhone').value = d.phone || '';
     if (!matched) {
       const sel = $('editMajor');
       document.querySelectorAll('#major option').forEach(o => sel.appendChild(o.cloneNode(true)));
@@ -1020,6 +1049,13 @@
     const wa = $('editWa').value.trim().replace(/^@+/, '');
     if (wa && !/^[A-Za-z0-9._-]{1,40}$/.test(wa)) {
       alertBox.innerHTML = '<div class="alert error">WhatsApp username can only contain letters, numbers, dots, underscores and dashes.</div>';
+      return;
+    }
+    const phone = $('editPhone').value.trim();
+    const phoneErr = checkPhone(phone);
+    if (phoneErr) { alertBox.innerHTML = `<div class="alert error">${esc(phoneErr)}</div>`; return; }
+    if (!wa && !phone) {
+      alertBox.innerHTML = '<div class="alert error">Please enter your WhatsApp username or your phone number (at least one is required).</div>';
       return;
     }
     // A matched request keeps every other field exactly as it is
@@ -1051,7 +1087,8 @@
         p_german_level: v.de,
         p_english_level: v.en,
         p_whatsapp: wa || null,
-        p_study_year: v.year == null ? null : String(v.year)
+        p_study_year: v.year == null ? null : String(v.year),
+        p_phone: phone || null
       });
       if (error) throw error;
 
